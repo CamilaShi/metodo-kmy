@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>Método KMY Gerador de Prompt</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23013D8F'/%3E%3Ctext x='32' y='42' font-family='Arial' font-size='30' font-weight='700' text-anchor='middle' fill='%23FFFFFF'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Conceito: trilho de etapas à esquerda e cartão de trabalho à direita. No celular o trilho vira uma barra de progresso. Tema claro fixo, de propósito, para não cansar a vista. */
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --surface-2:#F1F5FB; --ink:#0B1F44; --muted:#4A5A78; --line:#D9DFEA; --field:#8394B3;
+  --accent:#013D8F; --tint:#E3ECF8; --btn:#013D8F; --btn-ink:#FFFFFF;
+  --focus:#013D8F;
+  --mark-bg:#013D8F; --mark-ink:#FFFFFF;
+  --warn-bg:#FFF1E6; --warn-ink:#6B2A00; --ok:#0B6B4C; --stop:#9B1C31;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Figtree','Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --r:10px; --r-lg:16px;
+  color-scheme:only light;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.55;
+  padding-block:24px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+p{margin:0}
+.app{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* topo */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:44px;height:44px;border-radius:var(--r);background:var(--mark-bg);color:var(--mark-ink);display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:.02em;position:relative}
+.mark::after{content:"";position:absolute;left:10px;right:10px;bottom:7px;height:3px;border-radius:2px;background:var(--mark-ink)}
+h1{margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;line-height:1.1;letter-spacing:-.01em}
+.brand-sub{font-size:14px;color:var(--muted)}
+.save-note{font-size:13px;color:var(--muted);max-width:34ch}
+
+/* estrutura */
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+@media (min-width:900px){.layout{grid-template-columns:250px minmax(0,1fr);gap:32px}}
+.rail{display:none}
+@media (min-width:900px){.rail{display:block;position:sticky;top:16px}}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.rail-item{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:8px;border-radius:var(--r);border:1.5px solid transparent;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.rail-item:hover{background:var(--surface-2)}
+.rail-item[aria-current="step"]{background:var(--surface);border-color:var(--line)}
+.rail-item[aria-current="step"] .rn{font-weight:700}
+.rail-item[aria-current="step"] .num{background:var(--mark-bg);color:var(--mark-ink)}
+.num{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;background:var(--tint);color:var(--ink)}
+.rt{display:flex;flex-direction:column;min-width:0}
+.rn{font-size:15px;line-height:1.25}
+.rs{font-size:12.5px;color:var(--muted)}
+.rs.ok{color:var(--ok)}
+
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-lg);overflow:hidden;min-width:0}
+.mprog{padding:16px 24px 0;display:flex;flex-direction:column;gap:8px}
+@media (min-width:900px){.mprog{display:none}}
+.mprog p{font-size:13px;color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mark-bg);border-radius:99px;transition:width .25s}
+.stage-head{padding:24px;background:var(--surface);border-bottom:1.5px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.kicker{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h2{margin:0;font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4.2vw,36px);line-height:1.1;letter-spacing:-.015em;text-wrap:balance;color:var(--accent)}
+.why{font-size:16px;color:var(--ink);max-width:62ch}
+.blocks{padding:24px;display:flex;flex-direction:column;gap:24px}
+.q{display:flex;flex-direction:column;gap:8px;min-width:0}
+.lab{font-weight:600;font-size:16px;line-height:1.35;padding:0}
+fieldset.grp{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+.sub{font-size:14.5px;color:var(--muted)}
+.hint{font-size:14px;color:var(--muted);max-width:64ch}
+.opt-tag{font-weight:500;font-size:13px;color:var(--muted)}
+.in{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1.5px solid var(--field);border-radius:var(--r);padding:12px 14px;min-height:48px}
+textarea.in{min-height:96px;resize:vertical;line-height:1.5}
+.in::placeholder{color:var(--muted);opacity:.8}
+.in:focus-visible{border-color:var(--focus)}
+select.in{appearance:auto}
+select.in option:checked{background:var(--tint);color:var(--ink)}
+@supports (appearance:base-select){
+  select.in,select.in::picker(select){appearance:base-select}
+  select.in{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+  select.in::picker-icon{color:var(--muted)}
+  select.in::picker(select){background:#FFFFFF;border:1.5px solid var(--field);border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(11,31,68,.12)}
+  select.in option{padding:10px 12px;border-radius:8px;background:#FFFFFF;color:var(--ink);font:inherit;cursor:pointer}
+  select.in option:hover,select.in option:focus-visible{background:#EEF1F4}
+  select.in option:checked{background:var(--tint);font-weight:600}
+  select.in option::checkmark{color:var(--accent)}
+}
+.nudge{font-size:14px;color:var(--warn-ink);background:var(--warn-bg);border-radius:var(--r);padding:8px 12px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1.5px solid var(--field);border-radius:var(--r);cursor:pointer;background:var(--surface);min-width:0}
+.opt:hover{background:var(--tint)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--tint)}
+.opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:1px 0 0;border:2px solid var(--field);background:#FFFFFF;border-radius:6px;display:grid;place-content:center;cursor:pointer}
+.opt input[type="radio"]{border-radius:50%}
+.opt input:checked{background:var(--accent);border-color:var(--accent)}
+.opt input[type="checkbox"]:checked::after{content:"";width:6px;height:11px;border:solid #FFFFFF;border-width:0 2.5px 2.5px 0;transform:translate(0,-1px) rotate(45deg)}
+.opt input[type="radio"]:checked::after{content:"";width:8px;height:8px;border-radius:50%;background:#FFFFFF}
+.opt:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+.opt span{display:flex;flex-direction:column;min-width:0}
+.opt b{font-weight:600;font-size:15.5px;line-height:1.35}
+.opt small{font-size:13.5px;color:var(--muted);line-height:1.4}
+.nunca .opt:has(input:checked){border-color:var(--stop)}
+.nunca .lab::before{content:"Limite inviolável";display:block;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stop);margin-bottom:2px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;flex-direction:column;gap:6px}
+.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:16px}
+.note{font-size:14.5px;color:var(--muted);background:var(--surface-2);border-radius:var(--r);padding:12px 14px;max-width:70ch}
+.sugg{font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:14px;padding:6px 12px;border-radius:99px;border:1.5px solid var(--field);background:var(--surface);color:var(--ink);cursor:pointer;min-height:36px}
+.chip:hover{background:var(--surface-2);border-color:var(--accent)}
+.alert{background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+.alert .chip{align-self:flex-start;color:var(--warn-ink);border-color:var(--warn-ink);background:transparent}
+.phrase{font-size:17px;background:var(--surface-2);border-radius:var(--r);padding:12px 14px}
+.derived{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:15px}
+
+/* revisão */
+.review{display:flex;flex-direction:column;gap:24px;border-top:1.5px solid var(--line);padding-top:24px}
+h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:20px;line-height:1.2}
+.dl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr);gap:8px 16px;margin:0;font-size:15px}
+.dl dt{color:var(--muted)}
+.dl dd{margin:0;overflow-wrap:anywhere}
+.gaps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.gaps li{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:10px 12px;font-size:15px}
+.gaps li span{min-width:0;flex:1 1 240px}
+.good{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;color:var(--ok);font-weight:600}
+.linkbtn{font:inherit;font-size:14px;font-weight:600;background:none;border:0;padding:6px 4px;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:36px}
+
+/* botões */
+.nav{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:0 24px 24px}
+.btn{font:inherit;font-weight:700;font-size:15px;min-height:42px;padding:0 20px;border-radius:var(--r);border:1.5px solid transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--btn);color:var(--btn-ink)}
+.btn-primary:hover{filter:brightness(.94)}
+.btn-primary[disabled]{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--field)}
+.btn-ghost:hover{background:var(--surface-2)}
+.btn.sm{min-height:40px;padding:0 16px;font-size:15px;align-self:flex-start}
+
+/* resultado */
+.out{width:100%;min-height:380px;max-height:70vh;font-family:var(--font-mono);font-size:13.5px;line-height:1.6;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;resize:vertical}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.meta{font-size:14px;color:var(--muted)}
+
+.foot{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.foot p{max-width:60ch}
+.danger{color:var(--stop);font-weight:700}
+.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:var(--r);font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:560px){
+  .stage-head,.blocks{padding:16px}
+  .nav{padding:0 16px 16px}
+  .mprog{padding:16px 16px 0}
+  .btn{flex:1 1 100%}
+  .dl{grid-template-columns:1fr;gap:2px}
+  .dl dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+[hidden]{display:none!important}
+body{margin:0}
+img{max-width:100%}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">KMY</div>
+      <div>
+        <h1>Método KMY</h1>
+        <p class="brand-sub">Gerador de Prompt · da ideia ao resultado</p>
+      </div>
+    </div>
+    <p class="save-note">Suas respostas ficam salvas só neste navegador.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="rail" aria-label="Etapas do gerador"><ol id="rail"></ol></nav>
+    <main class="panel" id="panel">
+      <div class="mprog" id="mprog"></div>
+      <section id="stage" aria-live="off"></section>
+    </main>
+  </div>
+
+  <footer class="foot">
+    <div id="resetBox"><button type="button" class="linkbtn" data-act="reset">Recomeçar do zero</button></div>
+    <p>Se você limpar os dados do navegador, as respostas salvas somem. Para guardar, copie o prompt no final.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='metodo-kmy-gerador-v1';
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var norm=function(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()};
+var val=function(a,k){return String(a[k]==null?'':a[k]).trim()};
+var has=function(v){return v!=null&&String(v).trim()!==''};
+var L=function(a,k){return Array.isArray(a[k])?a[k]:[]};
+var short=function(s,n){s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s};
+var lines=function(s){return String(s||'').split(/\n+/).map(function(x){return x.replace(/^[\s\-–•*]+/,'').replace(/^\d+[.)]\s+/,'').trim()}).filter(Boolean)};
+var uniq=function(arr){return arr.filter(function(x,i){return arr.indexOf(x)===i})};
+var labelOf=function(list,k){var f=list.filter(function(x){return x[0]===k})[0];return f?f[1]:k};
+
+/* ---------- dados fixos ---------- */
+var TINTS=['blue','lilac','mint','pink','yellow'];
+var WASTES=[
+ ['retrabalho','Retrabalho','Refazer algo que já deveria estar pronto','Retrabalhos por semana'],
+ ['espera','Espera','Algo parado esperando uma pessoa ou uma resposta','Tempo médio de espera'],
+ ['digitacao','Digitar duas vezes','O mesmo dado digitado em mais de um lugar','Registros digitados em duplicidade'],
+ ['procura','Procurar informação','Perder tempo para achar um dado ou documento','Tempo para encontrar uma informação'],
+ ['conferencia','Conferir várias vezes','Checar o mesmo trabalho mais de uma vez','Conferências por registro'],
+ ['papel','Papel e impressão','Formulários e anotações que poderiam ser digitais','Documentos em papel por semana'],
+ ['perda','Informação que se perde','Dado que some, fica incompleto ou não chega a quem precisa','Registros incompletos'],
+ ['acumulo','Pendências acumuladas','Coisas que ficam esquecidas e se acumulam','Pendências em aberto']
+];
+var MEDSIS=[
+ ['preenchidos','Porcentagem de registros preenchidos'],
+ ['tempo','Tempo para concluir uma tarefa'],
+ ['erros','Erros por semana'],
+ ['usam','Pessoas que usam por semana'],
+ ['pendencias','Pendências em aberto']
+];
+var TELAS=[
+ ['login','Login'],['inicial','Tela inicial'],['dashboard','Dashboard'],['cadastros','Cadastros'],
+ ['solic','Solicitações e registros'],['acomp','Acompanhamento'],['externa','Página externa por link'],
+ ['config','Configurações'],['relatorios','Relatórios'],['historico','Histórico']
+];
+var NUNCA=[
+ ['apagar','Apagar um registro sem pedir confirmação','Tentar apagar um registro e ver o pedido de confirmação'],
+ ['vazar','Mostrar dados de um usuário para outro','Entrar com dois usuários diferentes e confirmar que cada um vê só o que pode'],
+ ['vazio','Salvar com campo obrigatório vazio','Tentar salvar com campo obrigatório vazio e ser bloqueado'],
+ ['duplicado','Aceitar cadastro duplicado','Tentar cadastrar o mesmo registro duas vezes e ser bloqueado'],
+ ['historico','Alterar registro encerrado sem deixar histórico','Alterar um registro encerrado e conferir que o histórico guardou quem mudou, quando e o quê'],
+ ['senha','Expor senha ou dado sensível','Abrir o código da página e a planilha e confirmar que não há senha nem dado sensível à mostra']
+];
+var TESTES=[
+ ['cadastrar','Cadastrar um registro'],['editar','Editar um registro'],['dashboard','Ver o registro refletido no dashboard'],
+ ['permissao','Entrar com um usuário sem permissão e não ver o que não deve'],['persistir','Fechar e abrir de novo e os dados continuam lá'],
+ ['celular','Usar no celular sem perder nenhuma função']
+];
+var QTD=[['so-eu','Só eu'],['poucos','Poucas pessoas (2 a 10)'],['equipe','Uma equipe (mais de 10)'],['externo','Equipe e também público externo']];
+var LOGIN=[['simples','Login simples controlado pelo Google Sheets'],['misto','Parte interna com login e páginas externas por link'],['nenhum','Não será necessário login']];
+var ESTRUT=[['lateral','Menu lateral e conteúdo principal'],['superior','Menu superior e conteúdo principal'],['dashini','Dashboard como página inicial'],['ia','Deixar a IA sugerir a melhor estrutura']];
+var ENT=[['cliente','Clientes'],['produto','Produtos'],['fornecedor','Fornecedores'],['pedido','Pedidos'],['funcionari','Funcionários'],['colaborador','Colaboradores'],['veiculo','Veículos'],['servico','Serviços'],['venda','Vendas'],['orcamento','Orçamentos'],['tarefa','Tarefas'],['equipamento','Equipamentos'],['solicitac','Solicitações'],['chamado','Chamados'],['projeto','Projetos'],['aluno','Alunos'],['paciente','Pacientes'],['contrato','Contratos'],['pagamento','Pagamentos'],['documento','Documentos'],['peca','Peças']];
+var ENTREGA=[
+ ['explicar','Explicar antes de construir','A IA resume o que entendeu e pergunta o que faltar antes de escrever código'],
+ ['etapas','Construir por etapas','Uma etapa por vez, e só avança quando eu disser ok'],
+ ['completos','Arquivos completos','Código inteiro de cada arquivo, pronto para copiar e colar'],
+ ['testes','Explicar como testar','Passo a passo para conferir cada etapa e o critério de pronto']
+];
+
+/* ---------- regras de raciocínio ---------- */
+var VAGUE=/\b(as vezes|depende|normal|geral|tudo|melhorar|organizar|facilitar|funcionar|funcione|bagunca|complicad\w*|confus\w*|etc)\b/;
+function isVague(v){var t=norm(v).trim();return t.length>0&&(t.length<25||(VAGUE.test(t)&&t.length<60))}
+function sim(a){return a.hoje==='sim'||a.hoje==='mais'}
+function cads(a){return String(a.cad_lista||'').split(/[\n,;]+/).map(function(x){return x.trim()}).filter(Boolean).slice(0,10)}
+function slug(s){return norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'x'}
+function missingEnt(a){
+  var c=cads(a); if(!c.length) return [];
+  var src=norm((a.fluxo_inicio||'')+' '+(a.fluxo_passos||'')); var cad=norm(a.cad_lista||'');
+  return ENT.filter(function(e){var r=new RegExp('\\b'+e[0]);return r.test(src)&&!r.test(cad)});
+}
+function sugTelas(a){
+  var r=['inicial','dashboard'];
+  if(a.usu_login&&a.usu_login!=='nenhum') r.push('login');
+  if(cads(a).length) r.push('cadastros');
+  if(lines(a.fluxo_passos).length) r.push('solic');
+  if(has(a.fluxo_status)) r.push('acomp');
+  if(a.usu_qtd==='externo'||a.usu_login==='misto') r.push('externa');
+  if(a.fluxo_hist==='sim') r.push('historico');
+  if(a.usu_qtd&&a.usu_qtd!=='so-eu') r.push('config');
+  return uniq(r);
+}
+function sugInd(a){
+  var r=[];
+  if(sim(a)) L(a,'wastes').forEach(function(k){var w=WASTES.filter(function(x){return x[0]===k})[0];if(w)r.push(w[3])});
+  L(a,'med_sis').forEach(function(k){r.push(labelOf(MEDSIS,k))});
+  if(has(a.fluxo_status)) r.push('Itens por status');
+  if(has(a.med_ind)) r.push(short(a.med_ind,60));
+  var cur=norm(a.dash_ind);
+  return uniq(r).filter(function(x){return cur.indexOf(norm(x))<0});
+}
+function nuncaTestes(a){
+  var t=L(a,'nunca').map(function(k){var n=NUNCA.filter(function(x){return x[0]===k})[0];return n?n[2]:''}).filter(Boolean);
+  lines(a.nunca_outro).forEach(function(x){t.push('Tentar fazer isto e ser bloqueado: '+x)});
+  return t;
+}
+function frase(a){
+  if(!has(a.pronto_acao)) return '';
+  return 'O sistema está pronto quando a pessoa consegue '+val(a,'pronto_acao')+(has(a.pronto_tempo)?' em '+val(a,'pronto_tempo')+' minutos':'')+(has(a.pronto_sem)?', sem '+val(a,'pronto_sem'):'')+'.';
+}
+
+function gaps(a){
+  var g=[];var add=function(s,t){g.push({s:s,t:t})};
+  if(!has(a.ideia)) add(0,'Você ainda não descreveu a ideia.');
+  if(!has(a.problema)) add(0,'Falta dizer qual problema a ideia resolve.');
+  if(!has(a.porque)&&!has(a.porque_alt)) add(0,'Falta o porquê: o que acontece hoje se isso não existir?');
+  if(!has(a.quem_usa)) add(0,'Falta dizer quem vai usar.');
+  if(!a.hoje) add(1,'Falta responder se esse processo existe hoje.');
+  else if(sim(a)){
+    if(!has(a.hoje_passos)) add(1,'O passo a passo de hoje não foi descrito.');
+    if(!has(a.hoje_erros)) add(1,'Falta contar onde o processo erra ou trava.');
+    L(a,'wastes').forEach(function(k){if(!has(a['wf__'+k])) add(1,'Você marcou "'+labelOf(WASTES,k)+'", mas não disse quantas vezes por semana nem quanto tempo.')});
+    if(L(a,'wastes').length&&!has(a.hoje_problema)) add(1,'Falta escolher qual problema pesa mais para fazer os 5 porquês.');
+  } else if(!has(a.nao_sofre)) add(1,'Falta dizer quem sofre com a falta desse sistema.');
+  if(!has(a.res_muda)) add(2,'Falta dizer o que muda quando o sistema funcionar.');
+  if(!/\d/.test(a.med_hoje||'')) add(2,'O indicador de hoje está sem número.');
+  if(!/\d/.test(a.med_meta||'')) add(2,'A meta está sem número. De quanto para quanto?');
+  var ls=lines(a.fluxo_passos);
+  if(!has(a.fluxo_inicio)) add(3,'Falta dizer o que dá início ao processo.');
+  if(!ls.length) add(3,'O fluxo futuro ainda não tem passos.');
+  else{
+    var sem=[];ls.slice(0,12).forEach(function(l,i){if(!has(a['resp__'+i]))sem.push(l)});
+    sem.slice(0,3).forEach(function(l){add(3,'O passo "'+short(l,60)+'" está sem responsável. Quem faz isso?')});
+    if(sem.length>3) add(3,'Mais '+(sem.length-3)+' passos estão sem responsável.');
+  }
+  if(a.aprov==='sim'&&!has(a.aprov_quem)) add(3,'Você disse que existe aprovação, mas não definiu quem aprova.');
+  if(a.aprov!=='sim'&&/aprov/.test(norm(a.fluxo_status))) add(3,'Seus status citam aprovação, mas você marcou que não existe aprovação. Quem aprova?');
+  if(!a.aprov) add(3,'Falta responder se existe aprovação.');
+  if(!a.usu_qtd) add(4,'Falta dizer quantas pessoas vão usar.');
+  if(a.usu_qtd&&a.usu_qtd!=='so-eu'){
+    if(!has(a.usu_tipos)) add(4,'Falta definir os tipos de usuário.');
+    else if(!has(a.usu_acesso)) add(4,'Falta dizer quem vê e faz o quê.');
+  }
+  if(!a.usu_login) add(4,'Falta escolher o tipo de login.');
+  var c=cads(a);
+  if(!c.length) add(5,'Nenhum cadastro foi definido.');
+  c.forEach(function(x){if(!has(a['campos__'+slug(x)])) add(5,'Faltam as informações do cadastro "'+x+'".')});
+  missingEnt(a).forEach(function(e){add(5,'O fluxo cita "'+e[1].toLowerCase()+'", mas não existe um cadastro para isso.')});
+  if(c.length&&!has(a.cad_id)) add(5,'Falta dizer qual ID liga as informações entre os cadastros.');
+  var tl=L(a,'telas');
+  if(!tl.length) add(6,'Nenhuma tela foi marcada.');
+  if(tl.indexOf('login')>=0&&a.usu_login==='nenhum') add(6,'Você marcou a tela de Login, mas escolheu não ter login.');
+  if(tl.indexOf('dashboard')>=0&&!has(a.dash_ind)) add(6,'O dashboard está sem indicadores.');
+  if(!L(a,'nunca').length&&!has(a.nunca_outro)) add(7,'Nenhum limite inviolável foi definido. O que o sistema nunca pode fazer?');
+  L(a,'nunca').forEach(function(k){if(!has(a['dano__'+k])) add(7,'Falta o prejuízo de "'+labelOf(NUNCA,k).toLowerCase()+'".')});
+  if(!has(a.regras_neg)&&!has(a.travas)) add(7,'Nenhuma regra de negócio ou trava foi descrita.');
+  if(!has(a.pronto_acao)) add(8,'Falta dizer o que a pessoa precisa conseguir fazer para o sistema estar pronto.');
+  if(!has(a.pronto_tempo)) add(8,'Falta o tempo máximo para essa tarefa.');
+  if(!has(a.pronto_sem)) add(8,'Falta dizer sem o quê (ajuda, papel, planilha paralela).');
+  if(!L(a,'testes').length&&!nuncaTestes(a).length) add(8,'Nenhum teste foi marcado.');
+  return g;
+}
+
+/* ---------- prompt ---------- */
+function buildPrompt(a){
+  var o=[];var P=function(){for(var i=0;i<arguments.length;i++)o.push(arguments[i])};
+  var kv=function(l,t){
+    if(!has(t))return;var s=String(t).trim();
+    if(s.indexOf('\n')>=0){o.push('- '+l+':');s.split('\n').filter(function(x){return x.trim()}).forEach(function(x){o.push('  - '+x.trim().replace(/^[-–•*]\s*/,''))})}
+    else o.push('- '+l+': '+s);
+  };
+  var nome=val(a,'nome');
+  P('# PEDIDO: CRIAR UM SISTEMA WEB'+(nome?' — '+nome:''),'');
+  P('Atue como desenvolvedor sênior e consultor de melhoria de processos (Lean e Sistema Toyota de Produção). Abaixo está o diagnóstico completo do sistema que eu quero criar: ideia, situação atual, resultado esperado, fluxo, usuários, dados, telas, regras e critério de pronto. Leia tudo antes de responder. Não invente regras nem troque o que está escrito. Se faltar informação, pergunte.','');
+
+  P('## 1. IDEIA E PORQUÊ');
+  kv('Nome do sistema',nome);kv('Empresa, área ou atividade',a.area);
+  kv('Ideia',a.ideia);kv('Exemplo real',a.ideia_ex);kv('Problema que resolve',a.problema);
+  kv('Por que importa',has(a.porque)?a.porque:'');
+  kv('O que acontece hoje se isso não existir',a.porque_alt);
+  kv('Quem vai usar',a.quem_usa);P('');
+
+  P('## 2. SITUAÇÃO ATUAL');
+  if(a.hoje==='nao'){
+    P('- Esse processo ainda não existe.');
+    kv('Quem sofre com a falta',a.nao_sofre);kv('Como se resolve hoje',a.nao_vira);
+    kv('O que acontece quando dá errado',a.nao_erro);kv('Referência parecida',a.nao_ref);
+  } else if(sim(a)){
+    P('- O processo '+(a.hoje==='sim'?'existe hoje.':'existe hoje, mas de forma improvisada.'));
+    kv('Como é feito hoje',a.hoje_como);
+    var pa=lines(a.hoje_passos);
+    if(pa.length){P('- Passo a passo atual:');pa.forEach(function(x,i){P('  '+(i+1)+'. '+x)})}
+    kv('Onde erra, trava ou falha',a.hoje_erros);
+    var w=L(a,'wastes');
+    if(w.length){P('- Desperdícios identificados (frequência e tempo):');w.forEach(function(k){P('  - '+labelOf(WASTES,k)+(has(a['wf__'+k])?': '+val(a,'wf__'+k):''))})}
+    kv('Problema que mais pesa',a.hoje_problema);
+    var pq=[0,1,2,3,4].map(function(i){return val(a,'pq'+i)}).filter(Boolean);
+    if(pq.length){P('- 5 porquês (cada resposta responde à pergunta anterior):');pq.forEach(function(x,i){P('  '+(i+1)+'. Por quê? '+x)})}
+    kv('Causa raiz',a.causa);kv('O que precisa melhorar',a.hoje_melhorar);
+  } else P('- (não informado)');
+  P('');
+
+  P('## 3. RESULTADO ESPERADO E MEDIÇÃO');
+  kv('O que muda quando funcionar',a.res_muda);
+  kv('Indicador do problema',a.med_ind);
+  if(has(a.med_hoje)||has(a.med_meta)) P('- De quanto para quanto: hoje '+(val(a,'med_hoje')||'?')+', meta '+(val(a,'med_meta')||'?'));
+  var ms=L(a,'med_sis').map(function(k){return labelOf(MEDSIS,k)});
+  if(has(a.med_sis_outro)) ms.push(val(a,'med_sis_outro'));
+  if(ms.length){P('- Como medir se o sistema funciona e é usado:');ms.forEach(function(x){P('  - '+x)})}
+  P('');
+
+  P('## 4. FLUXO DESEJADO');
+  kv('O que inicia o processo',a.fluxo_inicio);
+  var fl=lines(a.fluxo_passos);
+  if(fl.length){P('- Passos (com responsável):');fl.slice(0,12).forEach(function(x,i){P('  '+(i+1)+'. '+x+(has(a['resp__'+i])?' — responsável: '+val(a,'resp__'+i):''))});if(fl.length>12)fl.slice(12).forEach(function(x,i){P('  '+(13+i)+'. '+x)})}
+  kv('Status',a.fluxo_status);
+  P('- Aprovação: '+(a.aprov==='sim'?'sim. '+val(a,'aprov_quem'):a.aprov==='nao'?'não existe':'(não informado)'));
+  P('- Histórico de alterações: '+(a.fluxo_hist==='sim'?'sim, guardar quem mudou o quê e quando':a.fluxo_hist==='nao'?'não é necessário':'(não informado)'));
+  P('');
+
+  P('## 5. USUÁRIOS E ACESSOS');
+  kv('Quantidade',labelOf(QTD,a.usu_qtd||''));
+  kv('Tipos de usuário',a.usu_tipos);kv('Quem vê e faz o quê',a.usu_acesso);
+  kv('Login',a.usu_login?labelOf(LOGIN,a.usu_login):'');
+  P('');
+
+  P('## 6. CADASTROS E DADOS');
+  var cc=cads(a);
+  if(cc.length){P('- Cadastros e informações de cada um:');cc.forEach(function(x){P('  - '+x+(has(a['campos__'+slug(x)])?': '+val(a,'campos__'+slug(x)):''))})}
+  kv('Dados digitados em duplicidade hoje (viram cadastro único)',a.cad_dup);
+  kv('Listas suspensas',a.cad_listas);kv('ID que liga as informações',a.cad_id);
+  P('');
+
+  P('## 7. TELAS E DASHBOARD');
+  var tl=L(a,'telas').map(function(k){return labelOf(TELAS,k)});
+  if(has(a.telas_outras)) tl.push(val(a,'telas_outras'));
+  if(tl.length) kv('Telas',tl.join(', '));
+  kv('Tela inicial deve mostrar',a.tela_inicial);kv('Indicadores do dashboard',a.dash_ind);kv('Filtros',a.dash_filtros);
+  kv('Estrutura visual',a.dash_estrut?labelOf(ESTRUT,a.dash_estrut):'');kv('Cores e identidade visual',a.dash_visual);
+  P('');
+
+  P('## 8. REGRAS DE NEGÓCIO E LIMITES INVIOLÁVEIS');
+  kv('Regras de negócio',a.regras_neg);
+  kv('Travas (se acontecer X, o sistema bloqueia Y)',a.travas);
+  kv('Automatizações desejadas',a.automat);
+  var nv=L(a,'nunca');
+  if(nv.length||has(a.nunca_outro)){
+    P('- O sistema NUNCA pode, em hipótese alguma (trate cada item como restrição obrigatória e impeça pelo código no servidor):');
+    nv.forEach(function(k){P('  - '+labelOf(NUNCA,k)+(has(a['dano__'+k])?' (prejuízo se acontecer: '+val(a,'dano__'+k)+')':''))});
+    lines(a.nunca_outro).forEach(function(x){P('  - '+x)});
+  }
+  P('');
+
+  P('## 9. CRITÉRIO DE PRONTO');
+  if(frase(a)) P('- '+frase(a));
+  kv('Como testar isso',a.pronto_teste);
+  var ts=L(a,'testes').map(function(k){return labelOf(TESTES,k)}).concat(lines(a.testes_outro)).concat(nuncaTestes(a));
+  if(ts.length){P('- Testes que precisam passar:');ts.forEach(function(x){P('  - [ ] '+x)})}
+  P('- Só considere o sistema pronto quando todos os testes passarem. No final, mostre o resultado de cada teste.');
+  P('');
+
+  P('## 10. COMO CONSTRUIR (OBRIGATÓRIO)');
+  P('- Tudo sem custo.');
+  P('- Front-end: site estático (HTML, CSS e JavaScript) publicado no GitHub Pages.');
+  P('- Banco de dados: Google Sheets, uma aba por cadastro, mais abas de usuários, histórico (se houver) e configurações.');
+  P('- Back-end: Google Apps Script publicado como Web App, lendo e gravando na planilha.');
+  P('- Segurança: o código do site é público. Não coloque senhas, chaves ou links secretos no front-end. Valide usuário e permissão no Apps Script (servidor), nunca só na tela. Guarde senhas com hash, nunca em texto puro. Se o sistema tiver dados sensíveis, me avise dos limites dessa arquitetura antes de continuar.');
+  P('- Funcionar bem no celular e no computador. Textos em português do Brasil.');
+  P('');
+
+  var g=gaps(a);
+  if(g.length){
+    P('## PONTOS EM ABERTO (pergunte antes de construir)');
+    g.forEach(function(x){P('- '+x.t)});
+    P('');
+  }
+
+  var ent=L(a,'entrega');
+  P('## COMO VOCÊ DEVE CONDUZIR');
+  P('- Explique em português simples. Não presuma que eu sei programar.');
+  if(ent.indexOf('explicar')>=0) P('- Antes de escrever qualquer código, responda com: (a) um resumo de até 10 linhas do que você entendeu; (b) perguntas sobre os pontos em aberto; (c) a estrutura proposta das abas da planilha e das telas. Espere minha confirmação.');
+  if(ent.indexOf('etapas')>=0) P('- Construa por etapas pequenas: planilha, Apps Script, login e acessos, cadastros, fluxo, dashboard, regras e limites. Ao final de cada etapa, pare e espere meu "ok".');
+  if(ent.indexOf('completos')>=0) P('- Entregue arquivos completos, nunca trechos soltos, dizendo o nome de cada arquivo e onde colar.');
+  if(ent.indexOf('testes')>=0) P('- Ao final de cada etapa, explique passo a passo como testar e só avance se o teste passar.');
+  if(has(a.obs)){P('- Observações finais:');lines(a.obs).forEach(function(x){P('  - '+x)})}
+  return o.join('\n');
+}
+
+/* ---------- estado ---------- */
+var S={step:0,max:0,view:'step',a:{}};
+function defaults(){return {entrega:['explicar','etapas','completos','testes']}}
+function load(){
+  try{
+    var r=localStorage.getItem(KEY);
+    if(r){var o=JSON.parse(r);
+      if(o&&typeof o==='object'){
+        S.step=Math.min(Math.max(o.step|0,0),9);S.max=Math.min(Math.max(o.max|0,S.step),9);
+        S.view=o.view==='result'?'result':'step';
+        S.a=(o.a&&typeof o.a==='object')?o.a:{};
+      }}
+  }catch(e){}
+  if(!('entrega' in S.a)) S.a.entrega=defaults().entrega;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ---------- construtores de bloco ---------- */
+var T=function(id,label,o){return Object.assign({type:'text',id:id,label:label},o||{})};
+var A=function(id,label,o){return Object.assign({type:'area',id:id,label:label},o||{})};
+var R=function(id,label,options,o){return Object.assign({type:'radio',id:id,label:label,options:options},o||{})};
+var C=function(id,label,options,o){return Object.assign({type:'checks',id:id,label:label,options:options},o||{})};
+var N=function(id,text,o){return Object.assign({type:'note',id:id,text:text},o||{})};
+var D=function(id,dyn,sig,o){return Object.assign({type:'dyn',id:id,dyn:dyn,sig:sig},o||{})};
+
+var vagueIdeia=function(a){return isVague(a.ideia)};
+var STEPS=[
+ {title:'Ideia e porquê',why:'Começar pelo porquê evita construir um sistema bonito para o problema errado. Responda do seu jeito, sem termos técnicos.',blocks:[
+  T('nome','Nome do sistema',{opt:1,ph:'Ex.: Controle de Ordens de Serviço'}),
+  T('area','Empresa, área ou atividade',{opt:1}),
+  A('ideia','Qual é a sua ideia, em uma frase?',{hint:'Escreva do jeito que você explicaria para um amigo.',nudge:function(a){return vagueIdeia(a)?'Ficou curtinho. Responda a pergunta logo abaixo para a ideia ficar concreta.':''}}),
+  A('ideia_ex','Me conta um exemplo real de quando isso aconteceu.',{show:function(a){return vagueIdeia(a)||has(a.ideia_ex)}}),
+  A('problema','Qual problema ela resolve?'),
+  A('porque','Por que isso importa agora?',{hint:'O que te fez pensar nisso?'}),
+  C('porque_ns','',[['1','Não sei dizer o porquê agora']],{}),
+  A('porque_alt','O que acontece hoje se isso não existir?',{show:function(a){return L(a,'porque_ns').indexOf('1')>=0}}),
+  A('quem_usa','Quem vai usar?',{ph:'Ex.: eu e a equipe do balcão',rows:2})
+ ]},
+ {title:'Isso existe hoje?',why:'Quem conhece o processo atual encontra o desperdício. Quem ainda não tem nada encontra a dor.',blocks:[
+  R('hoje','Esse processo existe hoje?',[['sim','Sim, já fazemos isso'],['mais','Mais ou menos, de um jeito improvisado'],['nao','Não, ainda não existe']]),
+  A('hoje_como','Como isso é feito hoje?',{hint:'Com o quê (planilha, papel, WhatsApp, outro sistema), quem faz, quantas vezes e quanto tempo leva.',show:sim}),
+  A('hoje_passos','Conte o passo a passo real, do começo ao fim',{hint:'Um passo por linha. Do jeito que acontece de verdade, não do jeito que deveria.',rows:5,show:sim}),
+  A('hoje_erros','Onde erra, trava ou falha?',{show:sim}),
+  C('wastes','Quais desperdícios você reconhece nesse processo?',WASTES.map(function(w){return [w[0],w[1],w[2]]}),{show:sim}),
+  D('wf',function(a){
+    var w=L(a,'wastes');if(!w.length)return '';
+    return '<p class="lab">Quantas vezes por semana e quanto tempo cada um toma?</p><div class="stack">'+w.map(function(k){
+      return '<div class="row"><label class="sub" for="f_wf_'+k+'">'+esc(labelOf(WASTES,k))+'</label><input class="in" type="text" id="f_wf_'+k+'" data-k="wf__'+k+'" value="'+esc(a['wf__'+k]||'')+'" placeholder="Ex.: 10 vezes, 15 minutos cada"></div>';
+    }).join('')+'</div>';
+  },function(a){return L(a,'wastes').join('|')},{show:sim}),
+  T('hoje_problema','Qual desses problemas pesa mais?',{show:function(a){return sim(a)&&(has(a.hoje_erros)||L(a,'wastes').length>0)}}),
+  N('pq_note','Agora os 5 porquês. Cada resposta vira a próxima pergunta. Pode parar assim que achar a causa.',{show:function(a){return sim(a)&&has(a.hoje_problema)}}),
+  T('pq0','',{ph:'Porquê 1',show:function(a){return sim(a)&&has(a.hoje_problema)},labelFn:function(a){return 'Por que isso acontece? ('+short(a.hoje_problema,50)+')'}}),
+  T('pq1','',{ph:'Porquê 2',show:function(a){return sim(a)&&has(a.pq0)},labelFn:function(a){return 'Por que “'+short(a.pq0,60)+'”?'}}),
+  T('pq2','',{ph:'Porquê 3',show:function(a){return sim(a)&&has(a.pq1)},labelFn:function(a){return 'Por que “'+short(a.pq1,60)+'”?'}}),
+  T('pq3','',{ph:'Porquê 4',show:function(a){return sim(a)&&has(a.pq2)},labelFn:function(a){return 'Por que “'+short(a.pq2,60)+'”?'}}),
+  T('pq4','',{ph:'Porquê 5',show:function(a){return sim(a)&&has(a.pq3)},labelFn:function(a){return 'Por que “'+short(a.pq3,60)+'”?'}}),
+  T('causa','Qual é a causa raiz que você encontrou?',{hint:'Se já achou antes do quinto porquê, pode parar aqui.',show:function(a){return sim(a)&&has(a.pq1)}}),
+  A('hoje_melhorar','O que precisa melhorar?',{show:sim}),
+  A('nao_sofre','Quem sofre com a falta desse sistema?',{show:function(a){return a.hoje==='nao'}}),
+  A('nao_vira','Como as pessoas se viram hoje, sem ele?',{show:function(a){return a.hoje==='nao'}}),
+  A('nao_erro','O que acontece quando dá errado?',{show:function(a){return a.hoje==='nao'}}),
+  A('nao_ref','Existe algo parecido que serve de referência?',{opt:1,rows:2,show:function(a){return a.hoje==='nao'}})
+ ]},
+ {title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou. Aqui você mede o problema e também o próprio sistema.',blocks:[
+  A('res_muda','O que muda quando isso funcionar?'),
+  T('med_ind','O que você vai medir para saber se melhorou?',{ph:'Ex.: tempo para fechar uma ordem de serviço'}),
+  T('med_hoje','Como está hoje, com número?',{ph:'Ex.: 45 minutos',nudge:function(a){return has(a.med_hoje)&&!/\d/.test(a.med_hoje)?'De quanto para quanto? Coloque um número, mesmo que seja uma estimativa.':''}}),
+  T('med_meta','Qual é a meta?',{ph:'Ex.: 15 minutos',nudge:function(a){return has(a.med_meta)&&!/\d/.test(a.med_meta)?'De quanto para quanto? Coloque um número, mesmo que seja uma estimativa.':''}}),
+  C('med_sis','Como saber se o sistema está funcionando e sendo usado?',MEDSIS.map(function(m){return [m[0],m[1]]})),
+  T('med_sis_outro','Outro jeito de medir o sistema',{opt:1})
+ ]},
+ {title:'Fluxo futuro',why:'Aqui você desenha como deveria ser, já sem os desperdícios que apareceram. Pense em: começa assim, liga com isso, mostra aquilo.',blocks:[
+  A('fluxo_inicio','O que dá início ao processo?',{hint:'Um pedido chegou? Um cliente ligou? Um prazo venceu?',rows:2}),
+  A('fluxo_passos','Depois disso, o que acontece? Passo a passo.',{hint:'Um passo por linha, na ordem em que acontece.',rows:5}),
+  D('resp',function(a){
+    var ls=lines(a.fluxo_passos).slice(0,12);if(!ls.length)return '';
+    return '<p class="lab">Quem faz cada passo?</p><div class="stack">'+ls.map(function(l,i){
+      return '<div class="row"><label class="sub" for="f_resp'+i+'">'+(i+1)+'. '+esc(short(l,80))+'</label><input class="in" type="text" id="f_resp'+i+'" data-k="resp__'+i+'" value="'+esc(a['resp__'+i]||'')+'" placeholder="Quem faz?"></div>';
+    }).join('')+'</div>';
+  },function(a){return lines(a.fluxo_passos).slice(0,12).join('|')}),
+  T('fluxo_status','Por quais status cada item passa?',{ph:'Ex.: Novo → Em andamento → Concluído'}),
+  R('aprov','Existe aprovação em algum ponto?',[['sim','Sim'],['nao','Não']]),
+  T('aprov_quem','Quem aprova e o que acontece se recusar?',{show:function(a){return a.aprov==='sim'}}),
+  R('fluxo_hist','O processo precisa de histórico (quem mudou o quê e quando)?',[['sim','Sim'],['nao','Não']])
+ ]},
+ {title:'Usuários e acessos',why:'Cada pessoa vê o que precisa, e só isso.',blocks:[
+  {type:'select',id:'usu_qtd',label:'Quantas pessoas vão usar?',options:QTD},
+  A('usu_tipos','Quais tipos de usuário existem?',{hint:'Ex.: administrador, atendente, cliente.',show:function(a){return a.usu_qtd&&a.usu_qtd!=='so-eu'}}),
+  A('usu_acesso','Quem vê e faz o quê?',{hint:'Ex.: o atendente cadastra e edita; só o administrador apaga.',show:function(a){return has(a.usu_tipos)}}),
+  {type:'select',id:'usu_login',label:'Como será o login?',options:LOGIN},
+  D('usu_notes',function(a){
+    var t=[];
+    if(a.usu_qtd==='so-eu') t.push('Como é só você, dá para pular perfis de acesso.');
+    if(a.usu_login==='simples') t.push('No login simples, a planilha guarda usuário, senha e ativo/inativo (a senha deve ficar com hash). Serve bem para equipes pequenas, mas não para dado muito sensível.');
+    if(a.usu_login==='misto') t.push('A parte interna pede login. As páginas externas abrem por link, sem login.');
+    if(a.usu_login==='nenhum') t.push('Sem login, qualquer pessoa com o link entra. Evite guardar dado sensível.');
+    return t.map(function(x){return '<p class="note">'+esc(x)+'</p>'}).join('');
+  },function(a){return (a.usu_qtd==='so-eu'?'1':'0')+(a.usu_login||'')})
+ ]},
+ {title:'Cadastros e dados',why:'O dado é digitado uma vez só, em um lugar só. O resto o sistema busca pelo ID.',blocks:[
+  A('cad_lista','Quais cadastros o sistema precisa ter?',{hint:'Um por linha ou separados por vírgula. Ex.: Clientes, Veículos, Serviços.',rows:3}),
+  D('cad_campos',function(a){
+    var c=cads(a);if(!c.length)return '';
+    return '<p class="lab">Quais informações ficam em cada cadastro?</p><div class="stack">'+c.map(function(x){
+      var k=slug(x);
+      return '<div class="row"><label class="sub" for="f_campos_'+k+'">'+esc(x)+'</label><input class="in" type="text" id="f_campos_'+k+'" data-k="campos__'+k+'" value="'+esc(a['campos__'+k]||'')+'" placeholder="Ex.: nome, telefone, e-mail"></div>';
+    }).join('')+'</div>';
+  },function(a){return cads(a).join('|')}),
+  D('cad_alerta',function(a){
+    return missingEnt(a).map(function(e){
+      return '<div class="alert"><p>O fluxo cita “'+esc(e[1].toLowerCase())+'”, mas não existe um cadastro para isso. Quer incluir?</p><button type="button" class="chip" data-act="add-cad" data-text="'+esc(e[1])+'">Incluir “'+esc(e[1])+'”</button></div>';
+    }).join('');
+  },function(a){return missingEnt(a).map(function(e){return e[0]}).join('|')}),
+  A('cad_dup','Você marcou digitação duplicada. Quais dados são digitados mais de uma vez?',{hint:'Esses dados viram um cadastro único: o sistema busca pelo ID em vez de pedir de novo.',rows:2,show:function(a){return sim(a)&&L(a,'wastes').indexOf('digitacao')>=0}}),
+  A('cad_listas','Existem listas suspensas? Quais?',{hint:'Ex.: Status (Novo, Em andamento, Concluído); Forma de pagamento.',rows:2,opt:1}),
+  T('cad_id','Existe algum ID que liga as informações?',{hint:'Ex.: o número da ordem de serviço liga cliente, veículo e serviço.'})
+ ]},
+ {title:'Telas e dashboard',why:'As telas nascem do fluxo e dos cadastros. Os indicadores nascem dos desperdícios e da meta que você definiu.',blocks:[
+  D('telas_sug',function(a){
+    var m=sugTelas(a).filter(function(k){return L(a,'telas').indexOf(k)<0});if(!m.length)return '';
+    return '<p class="sugg">Pelo que você respondeu, faz sentido ter: <b>'+m.map(function(k){return esc(labelOf(TELAS,k))}).join(', ')+'</b>.</p><button type="button" class="btn btn-ghost sm" data-act="sug-telas">Marcar as sugeridas</button>';
+  },function(a){return sugTelas(a).filter(function(k){return L(a,'telas').indexOf(k)<0}).join('|')}),
+  C('telas','Marque as telas do sistema',TELAS.map(function(t){return [t[0],t[1]]})),
+  T('telas_outras','Outras telas necessárias',{opt:1}),
+  A('tela_inicial','O que deve aparecer na tela inicial?',{rows:2}),
+  A('dash_ind','Indicadores do dashboard',{hint:'Um por linha. Toque nas sugestões abaixo para adicionar.',rows:4}),
+  D('dash_chips',function(a){
+    var s=sugInd(a);if(!s.length)return '';
+    return '<p class="sub">Sugestões a partir das suas respostas:</p><div class="chips">'+s.map(function(x){return '<button type="button" class="chip" data-act="chip" data-text="'+esc(x)+'">+ '+esc(x)+'</button>'}).join('')+'</div>';
+  },function(a){return sugInd(a).join('|')}),
+  T('dash_filtros','Filtros necessários',{ph:'Ex.: período, responsável, status',opt:1}),
+  {type:'select',id:'dash_estrut',label:'Estrutura visual',options:ESTRUT},
+  T('dash_visual','Cores ou identidade visual',{opt:1,ph:'Ex.: azul e laranja, sem muito enfeite'})
+ ]},
+ {title:'Regras e limites',why:'É melhor impedir o erro do que corrigir depois. Aqui ficam as travas e o que o sistema nunca pode fazer.',blocks:[
+  A('regras_neg','Regras de negócio',{hint:'Ex.: toda ordem de serviço precisa ter cliente e veículo.'}),
+  A('travas','Travas: se acontecer X, o sistema bloqueia Y',{hint:'Ex.: se o valor estiver vazio, o botão Salvar fica bloqueado.'}),
+  A('automat','Automatizações desejadas',{hint:'O que o computador deve fazer sozinho? Ex.: avisar quando um prazo vencer.',opt:1}),
+  C('nunca','O que o sistema NUNCA pode fazer?',NUNCA.map(function(n){return [n[0],n[1]]}),{cls:'nunca'}),
+  A('nunca_outro','Outros limites invioláveis',{opt:1,rows:2,hint:'Um por linha.'}),
+  D('nunca_danos',function(a){
+    var n=L(a,'nunca');if(!n.length)return '';
+    return '<p class="lab">Se isso acontecer, qual o prejuízo?</p><div class="stack">'+n.map(function(k){
+      return '<div class="row"><label class="sub" for="f_dano_'+k+'">'+esc(labelOf(NUNCA,k))+'</label><input class="in" type="text" id="f_dano_'+k+'" data-k="dano__'+k+'" value="'+esc(a['dano__'+k]||'')+'" placeholder="Ex.: perde o histórico do cliente"></div>';
+    }).join('')+'</div>';
+  },function(a){return L(a,'nunca').join('|')})
+ ]},
+ {title:'Pronto quando…',why:'Sem critério de pronto, qualquer coisa vira pronto. Aqui você define o teste final do sistema.',blocks:[
+  T('pronto_acao','A pessoa consegue…',{ph:'Ex.: abrir uma ordem de serviço',nudge:function(a){return has(a.pronto_acao)&&isVague(a.pronto_acao)?'Como você testaria isso? Descreva o que a pessoa faria na tela.':''}}),
+  A('pronto_teste','Como você testaria isso?',{rows:2,show:function(a){return (has(a.pronto_acao)&&isVague(a.pronto_acao))||has(a.pronto_teste)}}),
+  T('pronto_tempo','Em quantos minutos?',{ph:'Ex.: 2',mode:'numeric'}),
+  T('pronto_sem','Sem precisar de…',{ph:'Ex.: ajuda, papel ou planilha paralela'}),
+  D('pronto_frase',function(a){var f=frase(a);return f?'<p class="phrase">'+esc(f)+'</p>':''},function(a){return frase(a)}),
+  C('testes','Quais testes precisam passar?',TESTES.map(function(t){return [t[0],t[1]]})),
+  A('testes_outro','Outros testes',{opt:1,rows:2,hint:'Um por linha.'}),
+  D('testes_der',function(a){
+    var t=nuncaTestes(a);if(!t.length)return '';
+    return '<p class="lab">Testes que vêm dos seus limites invioláveis</p><ul class="derived">'+t.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
+  },function(a){return nuncaTestes(a).join('|')})
+ ]},
+ {title:'Entrega e revisão',why:'Última conferência. O prompt já leva GitHub Pages, Google Sheets, Google Apps Script e as regras de segurança, sem custo.',blocks:[
+  C('entrega','Como a IA deve conduzir a construção?',ENTREGA),
+  A('obs','Observações finais',{opt:1,rows:3}),
+  D('review',function(a){return reviewHTML(a)},function(a){return JSON.stringify(a)},{cls:'review-wrap'})
+ ]}
+];
+
+function reviewHTML(a){
+  var g=gaps(a);
+  var cc=cads(a);var tl=L(a,'telas').map(function(k){return labelOf(TELAS,k)});
+  var rows=[
+   ['Ideia',short(a.ideia,140)],['Problema',short(a.problema,140)],
+   ['De → para',(has(a.med_hoje)||has(a.med_meta))?(val(a,'med_hoje')||'?')+' → '+(val(a,'med_meta')||'?'):''],
+   ['Fluxo',lines(a.fluxo_passos).length?lines(a.fluxo_passos).length+' passos':''],
+   ['Usuários',a.usu_qtd?labelOf(QTD,a.usu_qtd)+(a.usu_login?' · '+labelOf(LOGIN,a.usu_login):''):''],
+   ['Cadastros',cc.join(', ')],['Telas',tl.join(', ')],
+   ['Limites invioláveis',(L(a,'nunca').length+lines(a.nunca_outro).length)?(L(a,'nunca').length+lines(a.nunca_outro).length)+' definidos':''],
+   ['Pronto quando',short(frase(a),160)]
+  ].filter(function(r){return has(r[1])});
+  var h='<div class="review"><div class="stack"><h3>O que eu entendi</h3>';
+  h+=rows.length?'<dl class="dl">'+rows.map(function(r){return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'}).join('')+'</dl>':'<p class="sub">Ainda não há respostas para resumir.</p>';
+  h+='</div><div class="stack"><h3>Buracos encontrados</h3>';
+  if(g.length){
+    h+='<p class="sub">Eles não impedem de gerar. Vão para o prompt como perguntas que a IA deve fazer antes de construir.</p><ul class="gaps">'+g.map(function(x){return '<li><span>'+esc(x.t)+'</span><button type="button" class="linkbtn" data-act="goto" data-s="'+x.s+'">Ir para a etapa '+(x.s+1)+'</button></li>'}).join('')+'</ul>';
+  } else h+='<p class="good">Nenhum buraco encontrado. Dá para gerar com tranquilidade.</p>';
+  return h+'</div></div>';
+}
+
+/* ---------- renderização ---------- */
+var stage=$('#stage');
+function blockHTML(b){
+  var id='f_'+b.id;var v=S.a[b.id];
+  var opt=b.opt?' <span class="opt-tag">(opcional)</span>':'';
+  var hint=b.hint?'<p class="hint" id="'+id+'_h">'+esc(b.hint)+'</p>':'';
+  var desc=b.hint?' aria-describedby="'+id+'_h"':'';
+  var nud=b.nudge?'<p class="nudge" data-nudge hidden></p>':'';
+  var inner='';
+  if(b.type==='text'){
+    inner='<label class="lab" for="'+id+'"><span data-lab>'+esc(b.label)+'</span>'+opt+'</label>'+hint+'<input class="in" type="text" id="'+id+'" data-k="'+b.id+'" value="'+esc(v||'')+'" placeholder="'+esc(b.ph||'')+'" autocomplete="off"'+(b.mode?' inputmode="'+b.mode+'"':'')+desc+'>';
+  } else if(b.type==='area'){
+    inner='<label class="lab" for="'+id+'"><span data-lab>'+esc(b.label)+'</span>'+opt+'</label>'+hint+'<textarea class="in" id="'+id+'" data-k="'+b.id+'" rows="'+(b.rows||3)+'" placeholder="'+esc(b.ph||'')+'"'+desc+'>'+esc(v||'')+'</textarea>';
+  } else if(b.type==='select'){
+    inner='<label class="lab" for="'+id+'">'+esc(b.label)+'</label><select class="in" id="'+id+'" data-k="'+b.id+'"><option value="">Selecione</option>'+b.options.map(function(o){return '<option value="'+o[0]+'"'+(v===o[0]?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select>';
+  } else if(b.type==='radio'){
+    inner='<fieldset class="grp"><legend class="lab">'+esc(b.label)+'</legend>'+hint+'<div class="opts">'+b.options.map(function(o){return '<label class="opt"><input type="radio" name="'+b.id+'" data-k="'+b.id+'" value="'+o[0]+'"'+(v===o[0]?' checked':'')+'><span><b>'+esc(o[1])+'</b></span></label>'}).join('')+'</div></fieldset>';
+  } else if(b.type==='checks'){
+    var cur=L(S.a,b.id);
+    inner='<fieldset class="grp">'+(b.label?'<legend class="lab">'+esc(b.label)+'</legend>':'')+hint+'<div class="opts">'+b.options.map(function(o){return '<label class="opt"><input type="checkbox" data-k="'+b.id+'" data-v="'+o[0]+'"'+(cur.indexOf(o[0])>=0?' checked':'')+'><span><b>'+esc(o[1])+'</b>'+(o[2]?'<small>'+esc(o[2])+'</small>':'')+'</span></label>'}).join('')+'</div></fieldset>';
+  } else if(b.type==='note'){
+    inner='<p class="note">'+esc(b.text)+'</p>';
+  } else if(b.type==='dyn'){
+    inner='<div data-dyn></div>';
+  }
+  return '<div class="q'+(b.cls?' '+b.cls:'')+'" data-b="'+b.id+'">'+inner+nud+'</div>';
+}
+
+function stepGaps(){
+  var g=gaps(S.a),by={};g.forEach(function(x){by[x.s]=(by[x.s]||0)+1});return by;
+}
+function renderRail(){
+  var by=stepGaps();
+  $('#rail').innerHTML=STEPS.map(function(st,i){
+    var cur=S.view==='step'&&i===S.step;
+    var status='';
+    if(!cur&&i<=S.max){status=by[i]?'<span class="rs">faltam '+by[i]+' '+(by[i]===1?'ponto':'pontos')+'</span>':'<span class="rs ok">completa</span>'}
+    var mark=(!cur&&i<=S.max&&!by[i])?'✓':String(i+1);
+    return '<li><button type="button" class="rail-item t-'+TINTS[i%5]+'" data-act="goto" data-s="'+i+'"'+(cur?' aria-current="step"':'')+'><span class="num" aria-hidden="true">'+mark+'</span><span class="rt"><span class="rn">'+(i+1)+'. '+esc(st.title)+'</span>'+status+'</span></button></li>';
+  }).join('');
+}
+function renderProgress(){
+  var pct=S.view==='result'?100:Math.round(((S.step+1)/STEPS.length)*100);
+  var t=S.view==='result'?'Prompt pronto':'Etapa '+(S.step+1)+' de '+STEPS.length+' · '+STEPS[S.step].title;
+  $('#mprog').innerHTML='<p>'+esc(t)+'</p><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="Progresso"><i style="width:'+pct+'%"></i></div>';
+}
+
+function renderStage(){
+  if(S.view==='result'){renderResult();return}
+  var st=STEPS[S.step];var last=S.step===STEPS.length-1;
+  stage.innerHTML='<div class="t-'+TINTS[S.step%5]+'">'+
+    '<div class="stage-head"><p class="kicker">Etapa '+(S.step+1)+' de '+STEPS.length+'</p><h2 id="stepTitle" tabindex="-1">'+esc(st.title)+'</h2><p class="why">'+esc(st.why)+'</p></div>'+
+    '<div class="blocks">'+st.blocks.map(blockHTML).join('')+'</div>'+
+    '<div class="nav">'+(S.step>0?'<button type="button" class="btn btn-ghost" data-act="back">Voltar</button>':'<span></span>')+
+    (last?'<button type="button" class="btn btn-primary" data-act="generate">Gerar meu prompt</button>':'<button type="button" class="btn btn-primary" data-act="next">Próxima etapa</button>')+'</div></div>';
+  refresh();
+}
+
+function refresh(){
+  if(S.view!=='step')return;
+  var a=S.a;var st=STEPS[S.step];
+  st.blocks.forEach(function(b){
+    var el=stage.querySelector('[data-b="'+b.id+'"]');if(!el)return;
+    var show=b.show?!!b.show(a):true;el.hidden=!show;
+    if(b.labelFn){var l=el.querySelector('[data-lab]');if(l){var t=b.labelFn(a);if(l.textContent!==t)l.textContent=t}}
+    if(b.nudge){var n=el.querySelector('[data-nudge]');var nt=show?(b.nudge(a)||''):'';n.hidden=!nt;if(n.textContent!==nt)n.textContent=nt}
+    if(b.type==='dyn'){var sig=String(b.sig?b.sig(a):'');var box=el.querySelector('[data-dyn]');if(box.dataset.sig!==sig){box.dataset.sig=sig;box.innerHTML=b.dyn(a)}}
+  });
+  renderRail();renderProgress();
+}
+
+function renderResult(){
+  var txt=buildPrompt(S.a);var g=gaps(S.a);
+  var words=txt.trim().split(/\s+/).length;
+  stage.innerHTML='<div class="t-mint"><div class="stage-head"><p class="kicker">Pronto</p><h2 id="stepTitle" tabindex="-1">Seu prompt está pronto</h2><p class="why">Copie e cole na IA que você vai usar para construir o sistema, como Claude, ChatGPT ou outra.</p></div>'+
+   '<div class="blocks"><div class="q"><label class="lab" for="promptOut">Prompt completo</label><textarea class="out" id="promptOut" readonly></textarea></div>'+
+   '<div class="actions"><button type="button" class="btn btn-primary" data-act="copy">Copiar prompt</button><button type="button" class="btn btn-ghost" data-act="download">Baixar .txt</button><button type="button" class="btn btn-ghost" data-act="edit">Voltar e editar</button></div>'+
+   '<p class="meta">'+words+' palavras · '+g.length+(g.length===1?' ponto em aberto':' pontos em aberto')+(g.length?' (a IA vai perguntar sobre eles antes de construir)':'')+'</p></div></div>';
+  $('#promptOut').value=txt;
+  renderRail();renderProgress();
+}
+
+function focusTop(){
+  var h=$('#stepTitle');
+  if(h){try{h.focus({preventScroll:true})}catch(e){h.focus()}}
+  var p=$('#panel');if(p&&p.scrollIntoView){p.scrollIntoView({block:'start'})}
+}
+function go(n){S.step=Math.max(0,Math.min(STEPS.length-1,n));S.max=Math.max(S.max||0,S.step);S.view='step';save();renderStage();focusTop()}
+
+var toastT=null;
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on')},2400)}
+function copyPrompt(){
+  var t=$('#promptOut');var txt=t.value;
+  var fallback=function(){t.focus();t.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}toast(ok?'Prompt copiado!':'Texto selecionado. Use Ctrl+C, ou toque e segure para copiar.')};
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('Prompt copiado!')},fallback)}
+    else fallback();
+  }catch(e){fallback()}
+}
+
+/* ---------- eventos ---------- */
+function setField(k,v){S.a[k]=v;save()}
+stage.addEventListener('input',function(e){
+  var t=e.target;var k=t.dataset&&t.dataset.k;if(!k)return;
+  if(t.type==='checkbox'||t.type==='radio')return;
+  setField(k,t.value);refresh();
+});
+stage.addEventListener('change',function(e){
+  var t=e.target;var k=t.dataset&&t.dataset.k;if(!k)return;
+  if(t.type==='checkbox'){
+    var arr=L(S.a,k).slice();var v=t.dataset.v;var i=arr.indexOf(v);
+    if(t.checked&&i<0)arr.push(v);if(!t.checked&&i>=0)arr.splice(i,1);
+    setField(k,arr);
+  } else if(t.type==='radio'||t.tagName==='SELECT'){setField(k,t.value)}
+  else return;
+  refresh();
+});
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-act]');if(!b)return;
+  var act=b.dataset.act;
+  if(act==='next')go(S.step+1);
+  else if(act==='back')go(S.step-1);
+  else if(act==='goto')go(parseInt(b.dataset.s,10)||0);
+  else if(act==='generate'){S.view='result';S.max=STEPS.length-1;save();renderStage();focusTop()}
+  else if(act==='edit')go(STEPS.length-1);
+  else if(act==='copy')copyPrompt();
+  else if(act==='download'){
+    var blob=new Blob([$('#promptOut').value],{type:'text/plain;charset=utf-8'});
+    var u=URL.createObjectURL(blob);var a=document.createElement('a');
+    a.href=u;a.download=(has(S.a.nome)?slug(S.a.nome):'sistema')+'-prompt.txt';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(u)},1000);toast('Arquivo baixado.');
+  }
+  else if(act==='sug-telas'){setField('telas',uniq(L(S.a,'telas').concat(sugTelas(S.a))));renderStage()}
+  else if(act==='chip'){
+    var cur=String(S.a.dash_ind||'').replace(/\s+$/,'');var nv=(cur?cur+'\n':'')+b.dataset.text;
+    setField('dash_ind',nv);var ta=$('#f_dash_ind');if(ta)ta.value=nv;refresh();
+  }
+  else if(act==='add-cad'){
+    var c2=String(S.a.cad_lista||'').replace(/\s+$/,'');var n2=(c2?c2+'\n':'')+b.dataset.text;
+    setField('cad_lista',n2);var ta2=$('#f_cad_lista');if(ta2)ta2.value=n2;refresh();
+  }
+  else if(act==='reset'){
+    $('#resetBox').innerHTML='<span>Apagar todas as respostas?</span> <button type="button" class="linkbtn danger" data-act="reset-yes">Sim, apagar</button> <button type="button" class="linkbtn" data-act="reset-no">Cancelar</button>';
+  }
+  else if(act==='reset-no'){$('#resetBox').innerHTML='<button type="button" class="linkbtn" data-act="reset">Recomeçar do zero</button>'}
+  else if(act==='reset-yes'){
+    S={step:0,max:0,view:'step',a:defaults()};save();
+    $('#resetBox').innerHTML='<button type="button" class="linkbtn" data-act="reset">Recomeçar do zero</button>';
+    renderStage();focusTop();toast('Tudo limpo. Vamos do começo.');
+  }
+});
+
+load();
+renderStage();
+})();
+</script>
+</body>
+</html>
