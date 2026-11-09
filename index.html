@@ -66,13 +66,13 @@ h1{margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;line-
 .mprog p{font-size:13px;color:var(--muted)}
 .bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--mark-bg);border-radius:99px;transition:width .25s}
-.stage-head{padding:24px;background:var(--surface);border-bottom:1.5px solid var(--line);display:flex;flex-direction:column;gap:8px}
-.kicker{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-h2{margin:0;font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4.2vw,36px);line-height:1.1;letter-spacing:-.015em;text-wrap:balance;color:var(--accent)}
-.why{font-size:16px;color:var(--ink);max-width:62ch}
+.stage-head{padding:14px 24px 16px;background:var(--surface);border-bottom:1.5px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h2{margin:0;font-family:var(--font-display);font-weight:800;font-size:clamp(22px,3vw,28px);line-height:1.15;letter-spacing:-.015em;text-wrap:balance;color:var(--accent)}
+.why{font-size:14px;color:var(--muted);max-width:62ch;margin:0}
 .blocks{padding:24px;display:flex;flex-direction:column;gap:24px}
 .q{display:flex;flex-direction:column;gap:8px;min-width:0}
-.lab{font-weight:600;font-size:16px;line-height:1.35;padding:0}
+.lab{font-weight:600;font-size:16px;line-height:1.35;padding:0 0 8px}
 fieldset.grp{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:8px}
 .sub{font-size:14.5px;color:var(--muted)}
 .hint{font-size:14px;color:var(--muted);max-width:64ch}
@@ -155,7 +155,8 @@ h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:20px;line-
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:var(--r);font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 @media (max-width:560px){
-  .stage-head,.blocks{padding:16px}
+  .stage-head{padding:12px 16px 14px}
+  .blocks{padding:16px}
   .nav{padding:0 16px 16px}
   .mprog{padding:16px 16px 0}
   .btn{flex:1 1 100%}
@@ -568,7 +569,7 @@ var D=function(id,dyn,sig,o){return Object.assign({type:'dyn',id:id,dyn:dyn,sig:
 
 var vagueIdeia=function(a){return isVague(a.ideia)};
 var STEPS=[
- {title:'Ideia e porquê',why:'Começar pelo porquê evita construir um sistema bonito para o problema errado. Responda do seu jeito, sem termos técnicos.',blocks:[
+ {title:'Ideia e porquê',why:'Comece pelo porquê, do seu jeito, sem termos técnicos.',blocks:[
   T('nome','Nome do sistema',{opt:1,ph:'Ex.: Controle de Ordens de Serviço'}),
   A('ideia','Qual é a sua ideia, em uma frase?',{hint:'Escreva do jeito que você explicaria para um amigo.',nudge:function(a){return vagueIdeia(a)?'Ficou curtinho. Responda a pergunta logo abaixo para a ideia ficar concreta.':''}}),
   A('ideia_ex','Me conta um exemplo real de quando isso aconteceu.',{show:function(a){return vagueIdeia(a)||has(a.ideia_ex)}}),
@@ -578,7 +579,7 @@ var STEPS=[
   A('porque_alt','O que acontece hoje se isso não existir?',{show:function(a){return L(a,'porque_ns').indexOf('1')>=0}}),
   A('quem_usa','Quem vai usar?',{ph:'Ex.: eu e a equipe do balcão',rows:2})
  ]},
- {title:'Isso existe hoje?',why:'Quem conhece o processo atual encontra o desperdício. Quem ainda não tem nada encontra a dor.',blocks:[
+ {title:'Isso existe hoje?',why:'Quem conhece o processo atual encontra o desperdício.',blocks:[
   R('hoje','Esse processo existe hoje?',[['sim','Sim, já fazemos isso'],['mais','Mais ou menos, de um jeito improvisado'],['nao','Não, ainda não existe']]),
   A('hoje_como','Como isso é feito hoje?',{hint:'Com o quê (planilha, papel, WhatsApp, outro sistema), quem faz, quantas vezes e quanto tempo leva.',show:sim}),
   A('hoje_passos','Conte o passo a passo real, do começo ao fim',{hint:'Um passo por linha. Do jeito que acontece de verdade, não do jeito que deveria.',rows:5,show:sim}),
@@ -604,7 +605,7 @@ var STEPS=[
   A('nao_erro','O que acontece quando dá errado?',{show:function(a){return a.hoje==='nao'}}),
   A('nao_ref','Existe algo parecido que serve de referência?',{opt:1,rows:2,show:function(a){return a.hoje==='nao'}})
  ]},
- {title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou. Aqui você mede o problema e também o próprio sistema.',blocks:[
+ {title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou.',blocks:[
   A('res_muda','O que muda quando isso funcionar?'),
   T('med_ind','O que você vai medir para saber se melhorou?',{ph:'Ex.: tempo para fechar uma ordem de serviço'}),
   T('med_hoje','Como está hoje, com número?',{ph:'Ex.: 45 minutos',nudge:function(a){return has(a.med_hoje)&&!/\d/.test(a.med_hoje)?'De quanto para quanto? Coloque um número, mesmo que seja uma estimativa.':''}}),
@@ -612,7 +613,7 @@ var STEPS=[
   C('med_sis','Como saber se o sistema está funcionando e sendo usado?',MEDSIS.map(function(m){return [m[0],m[1]]})),
   T('med_sis_outro','Outro jeito de medir o sistema',{opt:1})
  ]},
- {title:'Fluxo futuro',why:'Aqui você desenha como deveria ser, já sem os desperdícios que apareceram. Pense em: começa assim, liga com isso, mostra aquilo.',blocks:[
+ {title:'Fluxo futuro',why:'Como deveria ser: começa assim, liga com isso, mostra aquilo.',blocks:[
   A('fluxo_inicio','O que dá início ao processo?',{hint:'Um pedido chegou? Um cliente ligou? Um prazo venceu?',rows:2}),
   A('fluxo_passos','Depois disso, o que acontece? Passo a passo.',{hint:'Um passo por linha, na ordem em que acontece.',rows:5}),
   D('resp',function(a){
@@ -640,7 +641,7 @@ var STEPS=[
     return t.map(function(x){return '<p class="note">'+esc(x)+'</p>'}).join('');
   },function(a){return (a.usu_qtd==='so-eu'?'1':'0')+(a.usu_login||'')})
  ]},
- {title:'Cadastros e dados',why:'O dado é digitado uma vez só, em um lugar só. O resto o sistema busca pelo ID.',blocks:[
+ {title:'Cadastros e dados',why:'Digite o dado uma vez só, em um lugar só.',blocks:[
   A('cad_lista','Quais cadastros o sistema precisa ter?',{hint:'Um por linha ou separados por vírgula. Ex.: Clientes, Veículos, Serviços.',rows:3}),
   D('cad_campos',function(a){
     var c=cads(a);if(!c.length)return '';
@@ -658,7 +659,7 @@ var STEPS=[
   A('cad_listas','Existem listas suspensas? Quais?',{hint:'Ex.: Status (Novo, Em andamento, Concluído); Forma de pagamento.',rows:2,opt:1}),
   T('cad_id','Existe algum ID que liga as informações?',{hint:'Ex.: o número da ordem de serviço liga cliente, veículo e serviço.'})
  ]},
- {title:'Telas e dashboard',why:'As telas nascem do fluxo e dos cadastros. Os indicadores nascem dos desperdícios e da meta que você definiu.',blocks:[
+ {title:'Telas e dashboard',why:'As telas nascem do fluxo e os indicadores da sua meta.',blocks:[
   D('telas_sug',function(a){
     var m=sugTelas(a).filter(function(k){return L(a,'telas').indexOf(k)<0});if(!m.length)return '';
     return '<p class="sugg">Pelo que você respondeu, faz sentido ter: <b>'+m.map(function(k){return esc(labelOf(TELAS,k))}).join(', ')+'</b>.</p><button type="button" class="btn btn-ghost sm" data-act="sug-telas">Marcar as sugeridas</button>';
@@ -675,7 +676,7 @@ var STEPS=[
   {type:'select',id:'dash_estrut',label:'Estrutura visual',options:ESTRUT},
   T('dash_visual','Cores ou identidade visual',{opt:1,ph:'Ex.: azul e laranja, sem muito enfeite'})
  ]},
- {title:'Regras e limites',why:'É melhor impedir o erro do que corrigir depois. Aqui ficam as travas e o que o sistema nunca pode fazer.',blocks:[
+ {title:'Regras e limites',why:'Melhor impedir o erro do que corrigir depois.',blocks:[
   A('regras_neg','Regras de negócio',{hint:'Ex.: toda ordem de serviço precisa ter cliente e veículo.'}),
   A('travas','Travas: se acontecer X, o sistema bloqueia Y',{hint:'Ex.: se o valor estiver vazio, o botão Salvar fica bloqueado.'}),
   A('automat','Automatizações desejadas',{hint:'O que o computador deve fazer sozinho? Ex.: avisar quando um prazo vencer.',opt:1}),
@@ -688,7 +689,7 @@ var STEPS=[
     }).join('')+'</div>';
   },function(a){return L(a,'nunca').join('|')})
  ]},
- {title:'Pronto quando…',why:'Sem critério de pronto, qualquer coisa vira pronto. Aqui você define o teste final do sistema.',blocks:[
+ {title:'Pronto quando…',why:'Sem critério de pronto, qualquer coisa vira pronto.',blocks:[
   T('pronto_acao','A pessoa consegue…',{ph:'Ex.: abrir uma ordem de serviço',nudge:function(a){return has(a.pronto_acao)&&isVague(a.pronto_acao)?'Como você testaria isso? Descreva o que a pessoa faria na tela.':''}}),
   A('pronto_teste','Como você testaria isso?',{rows:2,show:function(a){return (has(a.pronto_acao)&&isVague(a.pronto_acao))||has(a.pronto_teste)}}),
   T('pronto_tempo','Em quantos minutos?',{ph:'Ex.: 2',mode:'numeric'}),
@@ -701,7 +702,7 @@ var STEPS=[
     return '<p class="lab">Testes que vêm dos seus limites invioláveis</p><ul class="derived">'+t.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
   },function(a){return nuncaTestes(a).join('|')})
  ]},
- {title:'Entrega e revisão',why:'Última conferência. O prompt já leva GitHub Pages, Google Sheets, Google Apps Script e as regras de segurança, sem custo.',blocks:[
+ {title:'Entrega e revisão',why:'Última conferência antes de gerar o prompt.',blocks:[
   C('entrega','Como a IA deve conduzir a construção?',ENTREGA),
   A('obs','Observações finais',{opt:1,rows:3}),
   D('review',function(a){return reviewHTML(a)},function(a){return JSON.stringify(a)},{cls:'review-wrap'})
