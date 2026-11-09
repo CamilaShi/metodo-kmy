@@ -264,7 +264,7 @@ img{max-width:100%}
 <script>
 (function(){
 'use strict';
-var KEY='metodo-kmy-gerador-v1';
+var KEY='metodo-kmy-gerador-v2';
 var $=function(s,r){return (r||document).querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var norm=function(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()};
@@ -327,7 +327,6 @@ var ENTREGA=[
 /* ---------- regras de raciocínio ---------- */
 var VAGUE=/\b(as vezes|depende|normal|geral|tudo|melhorar|organizar|facilitar|funcionar|funcione|bagunca|complicad\w*|confus\w*|etc)\b/;
 function isVague(v){var t=norm(v).trim();return t.length>0&&(t.length<25||(VAGUE.test(t)&&t.length<60))}
-function sim(a){return a.hoje==='sim'||a.hoje==='mais'}
 function cads(a){return String(a.cad_lista||'').split(/[\n,;]+/).map(function(x){return x.trim()}).filter(Boolean).slice(0,10)}
 function slug(s){return norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'x'}
 function missingEnt(a){
@@ -348,7 +347,6 @@ function sugTelas(a){
 }
 function sugInd(a){
   var r=[];
-  if(sim(a)) L(a,'wastes').forEach(function(k){var w=WASTES.filter(function(x){return x[0]===k})[0];if(w)r.push(w[3])});
   L(a,'med_sis').forEach(function(k){r.push(labelOf(MEDSIS,k))});
   if(has(a.fluxo_status)) r.push('Itens por status');
   if(has(a.med_ind)) r.push(short(a.med_ind,60));
@@ -369,51 +367,44 @@ function gaps(a){
   var g=[];var add=function(s,t){g.push({s:s,t:t})};
   if(!has(a.ideia)) add(0,'Você ainda não descreveu a ideia.');
   if(!has(a.problema)) add(0,'Falta dizer qual problema a ideia resolve.');
-  if(!has(a.porque)&&!has(a.porque_alt)) add(0,'Falta o porquê: o que acontece hoje se isso não existir?');
   if(!has(a.quem_usa)) add(0,'Falta dizer quem vai usar.');
-  if(!a.hoje) add(1,'Falta responder se esse processo existe hoje.');
-  else if(sim(a)){
-    if(!has(a.hoje_passos)) add(1,'O passo a passo de hoje não foi descrito.');
-    if(!has(a.hoje_erros)) add(1,'Falta contar onde o processo erra ou trava.');
-    L(a,'wastes').forEach(function(k){if(!has(a['wf__'+k])) add(1,'Você marcou "'+labelOf(WASTES,k)+'", mas não disse quantas vezes por semana nem quanto tempo.')});
-    if(L(a,'wastes').length&&!has(a.hoje_problema)) add(1,'Falta escolher qual problema pesa mais para fazer os 5 porquês.');
-  } else if(!has(a.nao_sofre)) add(1,'Falta dizer quem sofre com a falta desse sistema.');
-  if(!has(a.res_muda)) add(2,'Falta dizer o que muda quando o sistema funcionar.');
-  if(!/\d/.test(a.med_hoje||'')) add(2,'O indicador de hoje está sem número.');
-  if(!/\d/.test(a.med_meta||'')) add(2,'A meta está sem número. De quanto para quanto?');
+  if(!has(a.hoje_como)) add(0,'Falta contar se esse processo existe hoje e como é feito.');
+  if(!has(a.res_muda)) add(1,'Falta dizer o que muda quando o sistema funcionar.');
+  if(!/\d/.test(a.med_hoje||'')) add(1,'O indicador de hoje está sem número.');
+  if(!/\d/.test(a.med_meta||'')) add(1,'A meta está sem número. De quanto para quanto?');
   var ls=lines(a.fluxo_passos);
-  if(!has(a.fluxo_inicio)) add(3,'Falta dizer o que dá início ao processo.');
-  if(!ls.length) add(3,'O fluxo futuro ainda não tem passos.');
+  if(!has(a.fluxo_inicio)) add(2,'Falta dizer o que dá início ao processo.');
+  if(!ls.length) add(2,'O fluxo futuro ainda não tem passos.');
   else{
     var sem=[];ls.slice(0,12).forEach(function(l,i){if(!has(a['resp__'+i]))sem.push(l)});
-    sem.slice(0,3).forEach(function(l){add(3,'O passo "'+short(l,60)+'" está sem responsável. Quem faz isso?')});
-    if(sem.length>3) add(3,'Mais '+(sem.length-3)+' passos estão sem responsável.');
+    sem.slice(0,3).forEach(function(l){add(2,'O passo "'+short(l,60)+'" está sem responsável. Quem faz isso?')});
+    if(sem.length>3) add(2,'Mais '+(sem.length-3)+' passos estão sem responsável.');
   }
-  if(a.aprov==='sim'&&!has(a.aprov_quem)) add(3,'Você disse que existe aprovação, mas não definiu quem aprova.');
-  if(a.aprov!=='sim'&&/aprov/.test(norm(a.fluxo_status))) add(3,'Seus status citam aprovação, mas você marcou que não existe aprovação. Quem aprova?');
-  if(!a.aprov) add(3,'Falta responder se existe aprovação.');
-  if(!a.usu_qtd) add(4,'Falta dizer quantas pessoas vão usar.');
+  if(a.aprov==='sim'&&!has(a.aprov_quem)) add(2,'Você disse que existe aprovação, mas não definiu quem aprova.');
+  if(a.aprov!=='sim'&&/aprov/.test(norm(a.fluxo_status))) add(2,'Seus status citam aprovação, mas você marcou que não existe aprovação. Quem aprova?');
+  if(!a.aprov) add(2,'Falta responder se existe aprovação.');
+  if(!a.usu_qtd) add(3,'Falta dizer quantas pessoas vão usar.');
   if(a.usu_qtd&&a.usu_qtd!=='so-eu'){
-    if(!has(a.usu_tipos)) add(4,'Falta definir os tipos de usuário.');
-    else if(!has(a.usu_acesso)) add(4,'Falta dizer quem vê e faz o quê.');
+    if(!has(a.usu_tipos)) add(3,'Falta definir os tipos de usuário.');
+    else if(!has(a.usu_acesso)) add(3,'Falta dizer quem vê e faz o quê.');
   }
-  if(!a.usu_login) add(4,'Falta escolher o tipo de login.');
+  if(!a.usu_login) add(3,'Falta escolher o tipo de login.');
   var c=cads(a);
-  if(!c.length) add(5,'Nenhum cadastro foi definido.');
-  c.forEach(function(x){if(!has(a['campos__'+slug(x)])) add(5,'Faltam as informações do cadastro "'+x+'".')});
-  missingEnt(a).forEach(function(e){add(5,'O fluxo cita "'+e[1].toLowerCase()+'", mas não existe um cadastro para isso.')});
-  if(c.length&&!has(a.cad_id)) add(5,'Falta dizer qual ID liga as informações entre os cadastros.');
+  if(!c.length) add(4,'Nenhum cadastro foi definido.');
+  c.forEach(function(x){if(!has(a['campos__'+slug(x)])) add(4,'Faltam as informações do cadastro "'+x+'".')});
+  missingEnt(a).forEach(function(e){add(4,'O fluxo cita "'+e[1].toLowerCase()+'", mas não existe um cadastro para isso.')});
+  if(c.length&&!has(a.cad_id)) add(4,'Falta dizer qual ID liga as informações entre os cadastros.');
   var tl=L(a,'telas');
-  if(!tl.length) add(6,'Nenhuma tela foi marcada.');
-  if(tl.indexOf('login')>=0&&a.usu_login==='nenhum') add(6,'Você marcou a tela de Login, mas escolheu não ter login.');
-  if(tl.indexOf('dashboard')>=0&&!has(a.dash_ind)) add(6,'O dashboard está sem indicadores.');
-  if(!L(a,'nunca').length&&!has(a.nunca_outro)) add(7,'Nenhum limite inviolável foi definido. O que o sistema nunca pode fazer?');
-  L(a,'nunca').forEach(function(k){if(!has(a['dano__'+k])) add(7,'Falta o prejuízo de "'+labelOf(NUNCA,k).toLowerCase()+'".')});
-  if(!has(a.regras_neg)&&!has(a.travas)) add(7,'Nenhuma regra de negócio ou trava foi descrita.');
-  if(!has(a.pronto_acao)) add(8,'Falta dizer o que a pessoa precisa conseguir fazer para o sistema estar pronto.');
-  if(!has(a.pronto_tempo)) add(8,'Falta o tempo máximo para essa tarefa.');
-  if(!has(a.pronto_sem)) add(8,'Falta dizer sem o quê (ajuda, papel, planilha paralela).');
-  if(!L(a,'testes').length&&!nuncaTestes(a).length) add(8,'Nenhum teste foi marcado.');
+  if(!tl.length) add(5,'Nenhuma tela foi marcada.');
+  if(tl.indexOf('login')>=0&&a.usu_login==='nenhum') add(5,'Você marcou a tela de Login, mas escolheu não ter login.');
+  if(tl.indexOf('dashboard')>=0&&!has(a.dash_ind)) add(5,'O dashboard está sem indicadores.');
+  if(!L(a,'nunca').length&&!has(a.nunca_outro)) add(6,'Nenhum limite inviolável foi definido. O que o sistema nunca pode fazer?');
+  L(a,'nunca').forEach(function(k){if(!has(a['dano__'+k])) add(6,'Falta o prejuízo de "'+labelOf(NUNCA,k).toLowerCase()+'".')});
+  if(!has(a.regras_neg)&&!has(a.travas)) add(6,'Nenhuma regra de negócio ou trava foi descrita.');
+  if(!has(a.pronto_acao)) add(7,'Falta dizer o que a pessoa precisa conseguir fazer para o sistema estar pronto.');
+  if(!has(a.pronto_tempo)) add(7,'Falta o tempo máximo para essa tarefa.');
+  if(!has(a.pronto_sem)) add(7,'Falta dizer sem o quê (ajuda, papel, planilha paralela).');
+  if(!L(a,'testes').length&&!nuncaTestes(a).length) add(7,'Nenhum teste foi marcado.');
   return g;
 }
 
@@ -432,28 +423,10 @@ function buildPrompt(a){
   P('## 1. IDEIA E PORQUÊ');
   kv('Nome do sistema',nome);
   kv('Ideia',a.ideia);kv('Exemplo real',a.ideia_ex);kv('Problema que resolve',a.problema);
-  kv('Por que importa',has(a.porque)?a.porque:'');
-  kv('O que acontece hoje se isso não existir',a.porque_alt);
   kv('Quem vai usar',a.quem_usa);P('');
 
   P('## 2. SITUAÇÃO ATUAL');
-  if(a.hoje==='nao'){
-    P('- Esse processo ainda não existe.');
-    kv('Quem sofre com a falta',a.nao_sofre);kv('Como se resolve hoje',a.nao_vira);
-    kv('O que acontece quando dá errado',a.nao_erro);kv('Referência parecida',a.nao_ref);
-  } else if(sim(a)){
-    P('- O processo '+(a.hoje==='sim'?'existe hoje.':'existe hoje, mas de forma improvisada.'));
-    kv('Como é feito hoje',a.hoje_como);
-    var pa=lines(a.hoje_passos);
-    if(pa.length){P('- Passo a passo atual:');pa.forEach(function(x,i){P('  '+(i+1)+'. '+x)})}
-    kv('Onde erra, trava ou falha',a.hoje_erros);
-    var w=L(a,'wastes');
-    if(w.length){P('- Desperdícios identificados (frequência e tempo):');w.forEach(function(k){P('  - '+labelOf(WASTES,k)+(has(a['wf__'+k])?': '+val(a,'wf__'+k):''))})}
-    kv('Problema que mais pesa',a.hoje_problema);
-    var pq=[0,1,2,3,4].map(function(i){return val(a,'pq'+i)}).filter(Boolean);
-    if(pq.length){P('- 5 porquês (cada resposta responde à pergunta anterior):');pq.forEach(function(x,i){P('  '+(i+1)+'. Por quê? '+x)})}
-    kv('Causa raiz',a.causa);kv('O que precisa melhorar',a.hoje_melhorar);
-  } else P('- (não informado)');
+  if(has(a.hoje_como)) kv('Como é feito hoje (ou como as pessoas se viram sem o sistema)',a.hoje_como); else P('- (não informado)');
   P('');
 
   P('## 3. RESULTADO ESPERADO E MEDIÇÃO');
@@ -483,7 +456,6 @@ function buildPrompt(a){
   P('## 6. CADASTROS E DADOS');
   var cc=cads(a);
   if(cc.length){P('- Cadastros e informações de cada um:');cc.forEach(function(x){P('  - '+x+(has(a['campos__'+slug(x)])?': '+val(a,'campos__'+slug(x)):''))})}
-  kv('Dados digitados em duplicidade hoje (viram cadastro único)',a.cad_dup);
   kv('Listas suspensas',a.cad_listas);kv('ID que liga as informações',a.cad_id);
   P('');
 
@@ -574,36 +546,8 @@ var STEPS=[
   A('ideia','Qual é a sua ideia, em uma frase?',{hint:'Escreva do jeito que você explicaria para um amigo.',nudge:function(a){return vagueIdeia(a)?'Ficou curtinho. Responda a pergunta logo abaixo para a ideia ficar concreta.':''}}),
   A('ideia_ex','Me conta um exemplo real de quando isso aconteceu.',{show:function(a){return vagueIdeia(a)||has(a.ideia_ex)}}),
   A('problema','Qual problema ela resolve?'),
-  A('porque','Por que isso importa agora?',{hint:'O que te fez pensar nisso?'}),
-  C('porque_ns','',[['1','Não sei dizer o porquê agora']],{}),
-  A('porque_alt','O que acontece hoje se isso não existir?',{show:function(a){return L(a,'porque_ns').indexOf('1')>=0}}),
+  A('hoje_como','Esse processo existe hoje? Como é feito?',{hint:'Se existe, conte do começo ao fim: com o quê (planilha, papel, WhatsApp), quem faz e onde trava. Se ainda não existe, diga como as pessoas se viram hoje.',rows:5}),
   A('quem_usa','Quem vai usar?',{ph:'Ex.: eu e a equipe do balcão',rows:2})
- ]},
- {title:'Isso existe hoje?',why:'Quem conhece o processo atual encontra o desperdício.',blocks:[
-  R('hoje','Esse processo existe hoje?',[['sim','Sim, já fazemos isso'],['mais','Mais ou menos, de um jeito improvisado'],['nao','Não, ainda não existe']]),
-  A('hoje_como','Como isso é feito hoje?',{hint:'Com o quê (planilha, papel, WhatsApp, outro sistema), quem faz, quantas vezes e quanto tempo leva.',show:sim}),
-  A('hoje_passos','Conte o passo a passo real, do começo ao fim',{hint:'Um passo por linha. Do jeito que acontece de verdade, não do jeito que deveria.',rows:5,show:sim}),
-  A('hoje_erros','Onde erra, trava ou falha?',{show:sim}),
-  C('wastes','Quais desperdícios você reconhece nesse processo?',WASTES.map(function(w){return [w[0],w[1],w[2]]}),{show:sim}),
-  D('wf',function(a){
-    var w=L(a,'wastes');if(!w.length)return '';
-    return '<p class="lab">Quantas vezes por semana e quanto tempo cada um toma?</p><div class="stack">'+w.map(function(k){
-      return '<div class="row"><label class="sub" for="f_wf_'+k+'">'+esc(labelOf(WASTES,k))+'</label><input class="in" type="text" id="f_wf_'+k+'" data-k="wf__'+k+'" value="'+esc(a['wf__'+k]||'')+'" placeholder="Ex.: 10 vezes, 15 minutos cada"></div>';
-    }).join('')+'</div>';
-  },function(a){return L(a,'wastes').join('|')},{show:sim}),
-  T('hoje_problema','Qual desses problemas pesa mais?',{show:function(a){return sim(a)&&(has(a.hoje_erros)||L(a,'wastes').length>0)}}),
-  N('pq_note','Agora os 5 porquês. Cada resposta vira a próxima pergunta. Pode parar assim que achar a causa.',{show:function(a){return sim(a)&&has(a.hoje_problema)}}),
-  T('pq0','',{ph:'Porquê 1',show:function(a){return sim(a)&&has(a.hoje_problema)},labelFn:function(a){return 'Por que isso acontece? ('+short(a.hoje_problema,50)+')'}}),
-  T('pq1','',{ph:'Porquê 2',show:function(a){return sim(a)&&has(a.pq0)},labelFn:function(a){return 'Por que “'+short(a.pq0,60)+'”?'}}),
-  T('pq2','',{ph:'Porquê 3',show:function(a){return sim(a)&&has(a.pq1)},labelFn:function(a){return 'Por que “'+short(a.pq1,60)+'”?'}}),
-  T('pq3','',{ph:'Porquê 4',show:function(a){return sim(a)&&has(a.pq2)},labelFn:function(a){return 'Por que “'+short(a.pq2,60)+'”?'}}),
-  T('pq4','',{ph:'Porquê 5',show:function(a){return sim(a)&&has(a.pq3)},labelFn:function(a){return 'Por que “'+short(a.pq3,60)+'”?'}}),
-  T('causa','Qual é a causa raiz que você encontrou?',{hint:'Se já achou antes do quinto porquê, pode parar aqui.',show:function(a){return sim(a)&&has(a.pq1)}}),
-  A('hoje_melhorar','O que precisa melhorar?',{show:sim}),
-  A('nao_sofre','Quem sofre com a falta desse sistema?',{show:function(a){return a.hoje==='nao'}}),
-  A('nao_vira','Como as pessoas se viram hoje, sem ele?',{show:function(a){return a.hoje==='nao'}}),
-  A('nao_erro','O que acontece quando dá errado?',{show:function(a){return a.hoje==='nao'}}),
-  A('nao_ref','Existe algo parecido que serve de referência?',{opt:1,rows:2,show:function(a){return a.hoje==='nao'}})
  ]},
  {title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou.',blocks:[
   A('res_muda','O que muda quando isso funcionar?'),
@@ -655,7 +599,6 @@ var STEPS=[
       return '<div class="alert"><p>O fluxo cita “'+esc(e[1].toLowerCase())+'”, mas não existe um cadastro para isso. Quer incluir?</p><button type="button" class="chip" data-act="add-cad" data-text="'+esc(e[1])+'">Incluir “'+esc(e[1])+'”</button></div>';
     }).join('');
   },function(a){return missingEnt(a).map(function(e){return e[0]}).join('|')}),
-  A('cad_dup','Você marcou digitação duplicada. Quais dados são digitados mais de uma vez?',{hint:'Esses dados viram um cadastro único: o sistema busca pelo ID em vez de pedir de novo.',rows:2,show:function(a){return sim(a)&&L(a,'wastes').indexOf('digitacao')>=0}}),
   A('cad_listas','Existem listas suspensas? Quais?',{hint:'Ex.: Status (Novo, Em andamento, Concluído); Forma de pagamento.',rows:2,opt:1}),
   T('cad_id','Existe algum ID que liga as informações?',{hint:'Ex.: o número da ordem de serviço liga cliente, veículo e serviço.'})
  ]},
