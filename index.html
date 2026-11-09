@@ -164,6 +164,65 @@ h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:20px;line-
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+
+/* ===== movimento de fundo (preview) ===== */
+.fx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.app,.toast{position:relative;z-index:1}
+.petal{position:absolute;top:-30px;width:var(--s);height:calc(var(--s)*.72);background:var(--pc);opacity:.95;
+  border-radius:100% 0 100% 0;animation:fall var(--d) linear var(--dl) infinite}
+body[data-petal="rosa"]{--pc:#F4C9D6}
+body[data-petal="azul"]{--pc:#BFD2EE}
+@keyframes fall{
+  0%{transform:translate3d(0,-30px,0) rotate(0deg)}
+  25%{transform:translate3d(calc(var(--x)*.6),28vh,0) rotate(120deg)}
+  50%{transform:translate3d(calc(var(--x)*-.4),58vh,0) rotate(250deg)}
+  75%{transform:translate3d(calc(var(--x)*.8),86vh,0) rotate(340deg)}
+  100%{transform:translate3d(calc(var(--x)*-.2),112vh,0) rotate(440deg)}}
+.splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  transition:opacity .6s ease;cursor:pointer}
+.splash.out{opacity:0;pointer-events:none}
+.splash .mark{width:76px;height:76px;font-size:24px;border-radius:20px;animation:pulse 1.6s ease-in-out infinite;position:relative;z-index:2}
+.splash small{position:absolute;bottom:28px;left:0;right:0;text-align:center;color:var(--muted);font-size:13px}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.bub{position:absolute;bottom:-90px;width:var(--s);height:var(--s);border-radius:50%;background:var(--tint);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;opacity:.9;animation:rise var(--d) ease-in var(--dl) infinite}
+.bub svg{width:52%;height:52%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@keyframes rise{0%{transform:translate3d(0,0,0)}30%{transform:translate3d(calc(var(--x)*.7),-36vh,0)}
+  60%{transform:translate3d(calc(var(--x)*-.6),-72vh,0)}100%{transform:translate3d(calc(var(--x)*.3),-118vh,0)}}
+.ico{position:absolute;color:var(--accent);opacity:.22;animation:drift var(--d) ease-in-out var(--dl) infinite alternate}
+.ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@keyframes drift{from{transform:translate3d(0,0,0) rotate(-6deg)}to{transform:translate3d(14px,-22px,0) rotate(6deg)}}
+.pv{position:fixed;right:12px;bottom:12px;z-index:60;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;
+  padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;box-shadow:0 4px 16px rgba(11,31,68,.12)}
+.pv b{color:var(--accent)}
+.pv button{font:inherit;font-size:13px;min-height:32px;padding:0 12px;border-radius:8px;border:1.5px solid var(--field);background:#fff;color:var(--ink);cursor:pointer}
+.pv button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+
+.bgm{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .6s ease}
+.bgm.on{opacity:1}
+.mods{display:flex;gap:6px;flex-wrap:wrap}
+.m1{background-image:radial-gradient(#8FA6CF 1.3px,transparent 1.6px);background-size:30px 30px;opacity:.0;
+ -webkit-mask-image:linear-gradient(115deg,transparent 35%,#000 50%,transparent 65%);mask-image:linear-gradient(115deg,transparent 35%,#000 50%,transparent 65%);
+ -webkit-mask-size:300% 100%;mask-size:300% 100%;animation:sweep 11s linear infinite}
+.m1.on{opacity:.75}
+@keyframes sweep{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0 0;mask-position:0 0}}
+.m1b{background-image:radial-gradient(#C3CFE4 1.1px,transparent 1.4px);background-size:30px 30px}
+.m2 svg,.m4 svg,.m5 svg{position:absolute;inset:0;width:100%;height:100%}
+.m2 path{fill:none;stroke:#C3CFE4;stroke-width:1.3}
+.m2 rect{fill:#fff;stroke:#C3CFE4;stroke-width:1.3}
+.m2 circle{fill:var(--accent);opacity:.55}
+.m3 i{position:absolute;bottom:-10px;width:var(--s);height:var(--s);border-radius:50%;background:var(--accent);opacity:0;animation:up var(--d) linear var(--dl) infinite}
+@keyframes up{0%{transform:translateY(0);opacity:0}15%{opacity:.28}85%{opacity:.28}100%{transform:translateY(-112vh);opacity:0}}
+.m4 .w1{animation:wv 26s linear infinite}.m4 .w2{animation:wv 40s linear infinite reverse}
+@keyframes wv{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.m5 .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.35;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 9s ease-in-out infinite}
+.m5 .gr{stroke:#D5DEEE;stroke-width:1}
+@keyframes draw{0%{stroke-dashoffset:1}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0}}
+.pv button[data-m][aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.pv{max-width:min(720px,calc(100vw - 24px))}
+
+@media (max-width:1179px){body{padding-top:48px}}
 [hidden]{display:none!important}
 body{margin:0}
 img{max-width:100%}
@@ -171,6 +230,9 @@ img{max-width:100%}
 </head>
 <body>
 
+
+<div class="fx" id="fx" aria-hidden="true"></div>
+<div class="splash" id="splash" role="presentation"><div class="mark" aria-hidden="true">KMY</div><small>Toque para entrar</small></div>
 <div class="app">
   <header class="top">
     <div class="brand">
@@ -367,7 +429,7 @@ function buildPrompt(a){
   P('Atue como desenvolvedor sênior e consultor de melhoria de processos (Lean e Sistema Toyota de Produção). Abaixo está o diagnóstico completo do sistema que eu quero criar: ideia, situação atual, resultado esperado, fluxo, usuários, dados, telas, regras e critério de pronto. Leia tudo antes de responder. Não invente regras nem troque o que está escrito. Se faltar informação, pergunte.','');
 
   P('## 1. IDEIA E PORQUÊ');
-  kv('Nome do sistema',nome);kv('Empresa, área ou atividade',a.area);
+  kv('Nome do sistema',nome);
   kv('Ideia',a.ideia);kv('Exemplo real',a.ideia_ex);kv('Problema que resolve',a.problema);
   kv('Por que importa',has(a.porque)?a.porque:'');
   kv('O que acontece hoje se isso não existir',a.porque_alt);
@@ -508,7 +570,6 @@ var vagueIdeia=function(a){return isVague(a.ideia)};
 var STEPS=[
  {title:'Ideia e porquê',why:'Começar pelo porquê evita construir um sistema bonito para o problema errado. Responda do seu jeito, sem termos técnicos.',blocks:[
   T('nome','Nome do sistema',{opt:1,ph:'Ex.: Controle de Ordens de Serviço'}),
-  T('area','Empresa, área ou atividade',{opt:1}),
   A('ideia','Qual é a sua ideia, em uma frase?',{hint:'Escreva do jeito que você explicaria para um amigo.',nudge:function(a){return vagueIdeia(a)?'Ficou curtinho. Responda a pergunta logo abaixo para a ideia ficar concreta.':''}}),
   A('ideia_ex','Me conta um exemplo real de quando isso aconteceu.',{show:function(a){return vagueIdeia(a)||has(a.ideia_ex)}}),
   A('problema','Qual problema ela resolve?'),
@@ -823,6 +884,76 @@ document.addEventListener('click',function(e){
 
 load();
 renderStage();
+})();
+</script>
+
+<script>
+(function(){
+var IC={
+ bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+ check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>',
+ chart:'<path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',
+ puzzle:'<path d="M9 4h3a2 2 0 1 1 4 0h2a1 1 0 0 1 1 1v3a2 2 0 1 0 0 4v3a1 1 0 0 1-1 1h-3a2 2 0 1 0-4 0H6a1 1 0 0 1-1-1v-3a2 2 0 1 1 0-4V5a1 1 0 0 1 1-1z"/>',
+ lupa:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.3-4.3"/>',
+ lista:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+ seta:'<path d="M4 12h14M13 6l6 6-6 6"/>'};
+var K=Object.keys(IC);
+var svg=function(k){return '<svg viewBox="0 0 24 24">'+IC[k]+'</svg>'};
+var R=function(a,b){return a+Math.random()*(b-a)};
+var fx=document.getElementById('fx'),sp=document.getElementById('splash');
+var small=window.innerWidth<700,W=0;
+function build(){
+  var h='',i;
+  var nar=window.innerWidth<1180;
+  if(nar){for(i=0;i<8;i++){W=22;h+='<span class="ico" style="left:'+(8+i*11.5).toFixed(1)+'%;top:15px;width:15px;height:15px;opacity:.3;animation:none">'+svg(K[i%K.length])+'</span>'}}
+  else for(i=0;i<8;i++){W=R(20,30).toFixed(0);h+='<span class="ico" style="left:'+(Math.random()<.5?R(0.5,4):R(93,97)).toFixed(1)+'%;top:'+R(6,86).toFixed(1)+'%;width:'+W+'px;height:'+W+'px;--d:'+R(7,13).toFixed(1)+'s;--dl:-'+R(0,10).toFixed(1)+'s">'+svg(K[i%K.length])+'</span>'}
+  fx.innerHTML=h;
+}
+function bolhas(){
+  var h='',i,n=small?12:22;
+  for(i=0;i<n;i++)h+='<span class="bub" style="left:'+R(2,92).toFixed(1)+'%;--s:'+R(30,56).toFixed(0)+'px;--x:'+R(-60,60).toFixed(0)+'px;--d:'+R(3.2,5.4).toFixed(1)+'s;--dl:-'+R(0,4).toFixed(1)+'s">'+svg(K[i%K.length])+'</span>';
+  sp.querySelectorAll('.bub').forEach(function(e){e.remove()});
+  sp.insertAdjacentHTML('afterbegin',h);
+}
+var t;
+function abrir(){bolhas();sp.classList.remove('out');clearTimeout(t);t=setTimeout(fechar,3200)}
+function fechar(){sp.classList.add('out')}
+sp.addEventListener('click',fechar);
+build();abrir();
+var B=document.body;B.setAttribute('data-petal','azul');
+
+var LAY=document.createElement('div');LAY.style.cssText='position:absolute;inset:0';fx.insertBefore(LAY,fx.firstChild);
+function mk(c,h){return '<div class="bgm '+c+'">'+h+'</div>'}
+var CUR=1;function setM(n){CUR=n;
+  var h='',i;
+  if(n==1)h=mk('m1b on','')+mk('m1','');
+  if(n==2&&window.innerWidth<1180){
+    var Q='<svg viewBox="0 0 1000 40" preserveAspectRatio="none" style="height:40px;bottom:auto"><path id="t" d="M0 20H1000" stroke="#C3CFE4" stroke-width="1.3" fill="none" vector-effect="non-scaling-stroke"/>';
+    Q+='<circle r="4" cy="0"><animateMotion dur="9s" repeatCount="indefinite"><mpath href="#t"/></animateMotion></circle><circle r="4"><animateMotion dur="9s" begin="-4.5s" repeatCount="indefinite"><mpath href="#t"/></animateMotion></circle></svg>';
+    h=mk('m2 on',Q);
+  } else if(n==2){
+    var P='<svg viewBox="0 0 1280 800" preserveAspectRatio="xMidYMid slice"><defs>'
+     +'<path id="a" d="M-20 80H40V300H70V520H20V820"/><path id="b" d="M1300 60H1240V260H1210V480H1260V820"/>'
+     +'<path id="c" d="M-20 400H50V640H80V900"/><path id="d" d="M1300 380H1230V620H1205V900"/></defs>'
+     +'<use href="#a" class="l"/><use href="#b" class="l"/><use href="#c" class="l"/><use href="#d" class="l"/>';
+    [['a',9,0],['b',11,-3],['c',10,-5],['d',12,-2]].forEach(function(x){P+='<circle r="4"><animateMotion dur="'+x[1]+'s" begin="'+x[2]+'s" repeatCount="indefinite"><mpath href="#'+x[0]+'"/></animateMotion></circle>'});
+    P+='<rect x="62" y="292" width="16" height="16" rx="3"/><rect x="1202" y="252" width="16" height="16" rx="3"/><rect x="12" y="512" width="16" height="16" rx="3"/><rect x="1252" y="472" width="16" height="16" rx="3"/></svg>';
+    h=mk('m2 on',P.replace(/<use /g,'<use stroke="#C3CFE4" stroke-width="1.3" fill="none" '));
+  }
+  if(n==3){for(i=0;i<(small?16:34);i++)h+='<i style="left:'+R(0,100).toFixed(1)+'%;--s:'+R(2,5).toFixed(1)+'px;--d:'+R(16,32).toFixed(1)+'s;--dl:-'+R(0,32).toFixed(1)+'s"></i>';h=mk('m3 on',h)}
+  if(n==4){
+    var w='M0 60Q180 20 360 60T720 60T1080 60T1440 60T1800 60T2160 60T2520 60T2880 60V200H0Z';
+    h=mk('m4 on','<svg viewBox="0 0 1440 800" preserveAspectRatio="none"><g transform="translate(0,600)"><path class="w2" d="'+w+'" fill="#D6E2F5" opacity=".6"/></g><g transform="translate(0,660)"><path class="w1" d="'+w+'" fill="#BFD0EC" opacity=".5"/></g></svg>');
+  }
+  if(n==5){
+    var G='';for(i=1;i<5;i++)G+='<line class="gr" x1="0" x2="1280" y1="'+(480+i*70)+'" y2="'+(480+i*70)+'"/>';
+    h=mk('m5 on','<svg viewBox="0 0 1280 800" preserveAspectRatio="xMidYMax slice">'+G+'<polyline class="ln" pathLength="1" points="0,760 120,730 240,745 360,690 480,700 600,640 720,655 840,590 960,610 1080,540 1200,560 1280,520"/></svg>');
+  }
+  LAY.innerHTML=h;
+}
+setM(4);
+var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){build();LAY=document.createElement('div');LAY.style.cssText='position:absolute;inset:0';fx.insertBefore(LAY,fx.firstChild);setM(CUR)},250)});
 })();
 </script>
 </body>
