@@ -213,6 +213,20 @@ body[data-petal="azul"]{--pc:#BFD2EE}
 .pv{max-width:min(720px,calc(100vw - 24px))}
 
 @media (max-width:1179px){body{padding-top:48px}}
+
+.mcol{min-width:0}
+.topbar{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.topbar .tr{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.topbar .lbl{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.topbar .stp{font-size:13px;font-weight:700;color:var(--muted)}
+.topbar .bar{height:8px;background:#E3E7EF}
+.kicker{font-weight:800;letter-spacing:.14em;color:var(--accent)}
+h2 .hl{color:var(--accent)}
+h2{color:var(--ink);font-size:clamp(26px,3.6vw,34px);line-height:1.12}
+.stage-head{padding:22px 28px 22px;gap:6px}
+.why{font-size:15px;max-width:70ch}
+.mprog{display:none!important}
+@media (max-width:640px){.stage-head{padding:16px 18px 18px}}
 [hidden]{display:none!important}
 body{margin:0}
 img{max-width:100%}
@@ -236,10 +250,11 @@ img{max-width:100%}
 
   <div class="layout">
     <nav class="rail" aria-label="Etapas do gerador"><ol id="rail"></ol></nav>
+    <div class="mcol"><div id="topbar"></div>
     <main class="panel" id="panel">
       <div class="mprog" id="mprog"></div>
       <section id="stage" aria-live="off"></section>
-    </main>
+    </main></div>
   </div>
 
   <footer class="foot">
@@ -529,7 +544,7 @@ var D=function(id,dyn,sig,o){return Object.assign({type:'dyn',id:id,dyn:dyn,sig:
 
 var vagueIdeia=function(a){return isVague(a.ideia)};
 var STEPS=[
- {title:'Ideia e porquê',why:'Comece pelo porquê, do seu jeito, sem termos técnicos.',blocks:[
+ {k:'Da ideia ao porquê',h1:'Comece pelo ',h2:'porquê da sua ideia',title:'Ideia e porquê',why:'Escreva do seu jeito, sem termos técnicos.',blocks:[
   T('nome','Nome do sistema',{opt:1,ph:'Ex.: Controle de Ordens de Serviço'}),
   A('ideia','Qual é a sua ideia, em uma frase?',{hint:'Escreva do jeito que você explicaria para um amigo.',nudge:function(a){return vagueIdeia(a)?'Ficou curtinho. Responda a pergunta logo abaixo para a ideia ficar concreta.':''}}),
   A('ideia_ex','Me conta um exemplo real de quando isso aconteceu.',{show:function(a){return vagueIdeia(a)||has(a.ideia_ex)}}),
@@ -537,7 +552,7 @@ var STEPS=[
   A('hoje_como','Esse processo existe hoje? Como é feito?',{hint:'Se existe, conte do começo ao fim: com o quê (planilha, papel, WhatsApp), quem faz e onde trava. Se ainda não existe, diga como as pessoas se viram hoje.',rows:5}),
   A('quem_usa','Quem vai usar?',{ph:'Ex.: eu e a equipe do balcão',rows:2})
  ]},
- {title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou.',blocks:[
+ {k:'Do resultado ao número',h1:'Defina como saber que ',h2:'melhorou',title:'Resultado e medição',why:'Sem o número de partida, ninguém sabe se melhorou.',blocks:[
   A('res_muda','O que muda quando isso funcionar?'),
   T('med_ind','O que você vai medir para saber se melhorou?',{ph:'Ex.: tempo para fechar uma ordem de serviço'}),
   T('med_hoje','Como está hoje, com número?',{ph:'Ex.: 45 minutos',nudge:function(a){return has(a.med_hoje)&&!/\d/.test(a.med_hoje)?'De quanto para quanto? Coloque um número, mesmo que seja uma estimativa.':''}}),
@@ -545,7 +560,7 @@ var STEPS=[
   C('med_sis','Como saber se o sistema está funcionando e sendo usado?',MEDSIS.map(function(m){return [m[0],m[1]]})),
   T('med_sis_outro','Outro jeito de medir o sistema',{opt:1})
  ]},
- {title:'Fluxo futuro',why:'Como deveria ser: começa assim, liga com isso, mostra aquilo.',blocks:[
+ {k:'Do processo para o sistema',h1:'Desenhe o ',h2:'fluxo que você quer',title:'Fluxo futuro',why:'Como deveria ser: começa assim, liga com isso, mostra aquilo.',blocks:[
   A('fluxo_inicio','O que dá início ao processo?',{hint:'Um pedido chegou? Um cliente ligou? Um prazo venceu?',rows:2}),
   A('fluxo_passos','Depois disso, o que acontece? Passo a passo.',{hint:'Um passo por linha, na ordem em que acontece.',rows:5}),
   D('resp',function(a){
@@ -559,7 +574,7 @@ var STEPS=[
   T('aprov_quem','Quem aprova e o que acontece se recusar?',{show:function(a){return a.aprov==='sim'}}),
   R('fluxo_hist','O processo precisa de histórico (quem mudou o quê e quando)?',[['sim','Sim'],['nao','Não']])
  ]},
- {title:'Usuários e acessos',why:'Cada pessoa vê o que precisa, e só isso.',blocks:[
+ {k:'Quem usa e o que vê',h1:'Defina quem ',h2:'usa e o que cada um acessa',title:'Usuários e acessos',why:'Cada pessoa vê o que precisa, e só isso.',blocks:[
   {type:'select',id:'usu_qtd',label:'Quantas pessoas vão usar?',options:QTD},
   A('usu_tipos','Quais tipos de usuário existem?',{hint:'Ex.: administrador, atendente, cliente.',show:function(a){return a.usu_qtd&&a.usu_qtd!=='so-eu'}}),
   A('usu_acesso','Quem vê e faz o quê?',{hint:'Ex.: o atendente cadastra e edita; só o administrador apaga.',show:function(a){return has(a.usu_tipos)}}),
@@ -573,7 +588,7 @@ var STEPS=[
     return t.map(function(x){return '<p class="note">'+esc(x)+'</p>'}).join('');
   },function(a){return (a.usu_qtd==='so-eu'?'1':'0')+(a.usu_login||'')})
  ]},
- {title:'Cadastros e dados',why:'Digite o dado uma vez só, em um lugar só.',blocks:[
+ {k:'Dados sem digitar duas vezes',h1:'Organize ',h2:'cadastros e dados',title:'Cadastros e dados',why:'Digite o dado uma vez só, em um lugar só.',blocks:[
   A('cad_lista','Quais cadastros o sistema precisa ter?',{hint:'Um por linha ou separados por vírgula. Ex.: Clientes, Veículos, Serviços.',rows:3}),
   D('cad_campos',function(a){
     var c=cads(a);if(!c.length)return '';
@@ -590,7 +605,7 @@ var STEPS=[
   A('cad_listas','Existem listas suspensas? Quais?',{hint:'Ex.: Status (Novo, Em andamento, Concluído); Forma de pagamento.',rows:2,opt:1}),
   T('cad_id','Existe algum ID que liga as informações?',{hint:'Ex.: o número da ordem de serviço liga cliente, veículo e serviço.'})
  ]},
- {title:'Telas e dashboard',why:'As telas nascem do fluxo e os indicadores da sua meta.',blocks:[
+ {k:'O que aparece na tela',h1:'Escolha ',h2:'as telas e o dashboard',title:'Telas e dashboard',why:'As telas nascem do fluxo e os indicadores da sua meta.',blocks:[
   D('telas_sug',function(a){
     var m=sugTelas(a).filter(function(k){return L(a,'telas').indexOf(k)<0});if(!m.length)return '';
     return '<p class="sugg">Pelo que você respondeu, faz sentido ter: <b>'+m.map(function(k){return esc(labelOf(TELAS,k))}).join(', ')+'</b>.</p><button type="button" class="btn btn-ghost sm" data-act="sug-telas">Marcar as sugeridas</button>';
@@ -607,7 +622,7 @@ var STEPS=[
   {type:'select',id:'dash_estrut',label:'Estrutura visual',options:ESTRUT},
   T('dash_visual','Cores ou identidade visual',{opt:1,ph:'Ex.: azul e laranja, sem muito enfeite'})
  ]},
- {title:'Regras e limites',why:'Melhor impedir o erro do que corrigir depois.',blocks:[
+ {k:'O que nunca pode acontecer',h1:'Defina ',h2:'regras e limites',title:'Regras e limites',why:'Melhor impedir o erro do que corrigir depois.',blocks:[
   A('regras_neg','Regras de negócio',{hint:'Ex.: toda ordem de serviço precisa ter cliente e veículo.'}),
   A('travas','Travas: se acontecer X, o sistema bloqueia Y',{hint:'Ex.: se o valor estiver vazio, o botão Salvar fica bloqueado.'}),
   A('automat','Automatizações desejadas',{hint:'O que o computador deve fazer sozinho? Ex.: avisar quando um prazo vencer.',opt:1}),
@@ -620,7 +635,7 @@ var STEPS=[
     }).join('')+'</div>';
   },function(a){return L(a,'nunca').join('|')})
  ]},
- {title:'Pronto quando…',why:'Sem critério de pronto, qualquer coisa vira pronto.',blocks:[
+ {k:'O critério de pronto',h1:'Diga quando ',h2:'está pronto',title:'Pronto quando…',why:'Sem critério de pronto, qualquer coisa vira pronto.',blocks:[
   T('pronto_acao','A pessoa consegue…',{ph:'Ex.: abrir uma ordem de serviço',nudge:function(a){return has(a.pronto_acao)&&isVague(a.pronto_acao)?'Como você testaria isso? Descreva o que a pessoa faria na tela.':''}}),
   A('pronto_teste','Como você testaria isso?',{rows:2,show:function(a){return (has(a.pronto_acao)&&isVague(a.pronto_acao))||has(a.pronto_teste)}}),
   T('pronto_tempo','Em quantos minutos?',{ph:'Ex.: 2',mode:'numeric'}),
@@ -633,7 +648,7 @@ var STEPS=[
     return '<p class="lab">Testes que vêm dos seus limites invioláveis</p><ul class="derived">'+t.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
   },function(a){return nuncaTestes(a).join('|')})
  ]},
- {title:'Entrega e revisão',why:'Última conferência antes de gerar o prompt.',blocks:[
+ {k:'Conferir e gerar',h1:'Revise e ',h2:'gere o seu prompt',title:'Entrega e revisão',why:'Última conferência antes de gerar o prompt.',blocks:[
   C('entrega','Como a IA deve conduzir a construção?',ENTREGA),
   A('obs','Observações finais',{opt:1,rows:3}),
   D('review',function(a){return reviewHTML(a)},function(a){return JSON.stringify(a)},{cls:'review-wrap'})
@@ -708,11 +723,15 @@ function renderProgress(){
   $('#mprog').innerHTML='<p>'+esc(t)+'</p><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="Progresso"><i style="width:'+pct+'%"></i></div>';
 }
 
+function topbar(pct,txt){
+  return '<div class="topbar"><div class="tr"><span class="lbl">Da ideia ao resultado</span><span class="stp">'+esc(txt)+'</span></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="Progresso"><i style="width:'+pct+'%"></i></div></div>';
+}
 function renderStage(){
   if(S.view==='result'){renderResult();return}
   var st=STEPS[S.step];var last=S.step===STEPS.length-1;
+  $('#topbar').innerHTML=topbar(Math.round(((S.step+1)/STEPS.length)*100),'Etapa '+(S.step+1)+' de '+STEPS.length);
   stage.innerHTML='<div class="t-'+TINTS[S.step%5]+'">'+
-    '<div class="stage-head"><p class="kicker">Etapa '+(S.step+1)+' de '+STEPS.length+'</p><h2 id="stepTitle" tabindex="-1">'+esc(st.title)+'</h2><p class="why">'+esc(st.why)+'</p></div>'+
+    '<div class="stage-head"><p class="kicker">'+esc(st.k)+'</p><h2 id="stepTitle" tabindex="-1">'+esc(st.h1)+'<span class="hl">'+esc(st.h2)+'</span></h2><p class="why">'+esc(st.why)+'</p></div>'+
     '<div class="blocks">'+st.blocks.map(blockHTML).join('')+'</div>'+
     '<div class="nav">'+(S.step>0?'<button type="button" class="btn btn-ghost" data-act="back">Voltar</button>':'<span></span>')+
     (last?'<button type="button" class="btn btn-primary" data-act="generate">Gerar meu prompt</button>':'<button type="button" class="btn btn-primary" data-act="next">Próxima etapa</button>')+'</div></div>';
@@ -735,7 +754,8 @@ function refresh(){
 function renderResult(){
   var txt=buildPrompt(S.a);var g=gaps(S.a);
   var words=txt.trim().split(/\s+/).length;
-  stage.innerHTML='<div class="t-mint"><div class="stage-head"><p class="kicker">Pronto</p><h2 id="stepTitle" tabindex="-1">Seu prompt está pronto</h2><p class="why">Copie e cole na IA que você vai usar para construir o sistema, como Claude, ChatGPT ou outra.</p></div>'+
+  $('#topbar').innerHTML=topbar(100,'Prompt pronto');
+  stage.innerHTML='<div class="t-mint"><div class="stage-head"><p class="kicker">Pronto para usar</p><h2 id="stepTitle" tabindex="-1">Seu prompt está <span class="hl">pronto</span></h2><p class="why">Copie e cole na IA que você vai usar para construir o sistema, como Claude, ChatGPT ou outra.</p></div>'+
    '<div class="blocks"><div class="q"><label class="lab" for="promptOut">Prompt completo</label><textarea class="out" id="promptOut" readonly></textarea></div>'+
    '<div class="actions"><button type="button" class="btn btn-primary" data-act="copy">Copiar prompt</button><button type="button" class="btn btn-ghost" data-act="download">Baixar .txt</button><button type="button" class="btn btn-ghost" data-act="edit">Voltar e editar</button></div>'+
    '<p class="meta">'+words+' palavras · '+g.length+(g.length===1?' ponto em aberto':' pontos em aberto')+(g.length?' (a IA vai perguntar sobre eles antes de construir)':'')+'</p></div></div>';
@@ -746,7 +766,7 @@ function renderResult(){
 function focusTop(){
   var h=$('#stepTitle');
   if(h){try{h.focus({preventScroll:true})}catch(e){h.focus()}}
-  var p=$('#panel');if(p&&p.scrollIntoView){p.scrollIntoView({block:'start'})}
+  var p=$('#topbar');if(p&&p.scrollIntoView){p.scrollIntoView({block:'start'})}
 }
 function go(n){S.step=Math.max(0,Math.min(STEPS.length-1,n));S.max=Math.max(S.max||0,S.step);S.view='step';save();renderStage();focusTop()}
 
